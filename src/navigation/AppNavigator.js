@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
 import SearchScreen from '../screens/SearchScreen';
 import CartScreen from '../screens/CartScreen';
-import ProfileScreen from '../screens/ProfileScreen';
+import ProfileStack from './ProfileStack';
 
 const Tab = createBottomTabNavigator();
 
@@ -29,7 +29,11 @@ export default function AppNavigator() {
       <Tab.Screen name="Inicio" component={HomeScreen} />
       <Tab.Screen name="Buscar" component={SearchScreen} />
       <Tab.Screen name="Carrito" component={CartScreen} />
-      <Tab.Screen name="Perfil" component={ProfileScreen} />
+      <Tab.Screen
+        name="Perfil"
+        component={ProfileStack}
+        options={{ headerShown: false }}
+      />
     </Tab.Navigator>
   );
 }
