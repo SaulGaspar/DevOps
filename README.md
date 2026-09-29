@@ -1,52 +1,30 @@
-&#x20;  # SportLike Mobile
+# SportLike Mobile
 
+Aplicación móvil de tienda deportiva desarrollada con React Native (Expo).
 
+## Requisitos
 
-&#x20;  Aplicación móvil de tienda deportiva desarrollada con React Native (Expo).
+- Node.js 22 o superior
+- Git
+- Expo Go en el celular o un emulador
 
+## Instalación
 
+    git clone https://github.com/SaulGaspar/DevOps.git
+    cd DevOps
+    npm install
+    copy .env.example .env
+    npx expo start
 
-&#x20;  ## Requisitos
+## Estructura de ramas
 
-&#x20;  - Node.js 22 o superior
+- main: versión estable, protegida
+- develop: integración del trabajo del equipo
+- feature/*: una rama por historia de usuario
 
-&#x20;  - Git
+## Equipo
 
-&#x20;  - Expo Go en el celular (o un emulador)
+- SaulGaspar
+- MontseAlvarez09
 
-
-
-&#x20;  ## Instalación
-
-&#x20;  git clone https://github.com/SaulGaspar/DevOps.git
-
-&#x20;  cd DevOps
-
-&#x20;  npm install
-
-&#x20;  copy .env.example .env
-
-&#x20;  npx expo start
-
-
-
-&#x20;  ## Estructura de ramas
-
-&#x20;  - main: versión estable, protegida
-
-&#x20;  - develop: integración del trabajo del equipo
-
-&#x20;  - feature/\*: una rama por historia de usuario
-
-
-
-&#x20;  ## Equipo
-
-&#x20;  - SaulGaspar
-
-&#x20;  - MontseAlvarez09
-
-
-
-&#x20;  Más detalles sobre cómo colaborar en CONTRIBUTING.md.
-
+Más detalles sobre cómo colaborar en CONTRIBUTING.md.
