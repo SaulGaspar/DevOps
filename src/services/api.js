@@ -16,7 +16,20 @@ export class ApiError extends Error {
 }
 
 function requireApiUrl() {
-  if (!API_URL || API_URL.includes('api.ejemplo.com')) {
+  let parsedUrl;
+
+  try {
+    parsedUrl = new URL(API_URL);
+  } catch {
+    throw new ApiError(
+      'La API todavía no está configurada. Define una URL válida en EXPO_PUBLIC_API_URL.',
+    );
+  }
+
+  if (
+    !['http:', 'https:'].includes(parsedUrl.protocol) ||
+    parsedUrl.hostname === 'api.ejemplo.com'
+  ) {
     throw new ApiError(
       'La API todavía no está configurada. Define EXPO_PUBLIC_API_URL en tu archivo .env.',
     );
