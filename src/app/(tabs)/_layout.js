@@ -21,7 +21,7 @@ export default function TabLayout() {
         ),
       })}
     >
-      <Tabs.Screen name="index" options={{ title: 'Inicio' }} />
+      <Tabs.Screen name="index" options={{ title: 'Catálogo' }} />
       <Tabs.Screen name="buscar" options={{ title: 'Buscar' }} />
       <Tabs.Screen name="carrito" options={{ title: 'Carrito' }} />
       <Tabs.Screen name="perfil" options={{ title: 'Perfil' }} />
