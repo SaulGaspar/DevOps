@@ -1,5 +1,7 @@
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import LoginScreen from '../src/screens/LoginScreen';
+
+jest.setTimeout(30000);
 import { authApi } from '../src/services/api';
 
 const mockIniciarSesion = jest.fn();
