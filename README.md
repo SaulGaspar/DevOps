@@ -46,6 +46,20 @@ npm run export:android
 
 El comando `npm run validate` ejecuta todas las comprobaciones anteriores de forma consecutiva.
 
+## Pipeline CI/CD
+
+GitHub Actions ejecuta automáticamente estas etapas en cada `push` a `develop`, `main` o
+`feature/**`, y en cada Pull Request dirigido a `develop` o `main`:
+
+1. Calidad de código: lint, tipos y diagnóstico de Expo.
+2. Pruebas funcionales: Jest con reporte de cobertura descargable.
+3. Seguridad de dependencias: bloquea vulnerabilidades altas o críticas.
+4. Seguridad del código: análisis CodeQL para JavaScript y TypeScript.
+5. Entrega Android: genera `dist/` y lo publica como artefacto cuando las etapas anteriores pasan.
+
+El flujo también puede ejecutarse manualmente desde la pestaña **Actions**. Los artefactos se
+conservan durante 14 días como evidencia de pruebas y entrega.
+
 ## Flujo de ramas
 
 - `main`: versión estable y protegida.
