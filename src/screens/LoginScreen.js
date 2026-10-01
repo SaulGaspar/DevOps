@@ -8,14 +8,43 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import styles, { COLORS } from './LoginScreen.styles';
+import { loginRequest } from '../services/auth';
+import { useAuth } from '../context/AuthContext';
 
 // Pantalla de inicio de sesión (HU1) con el diseño de la web de SportLike.
 export default function LoginScreen({ navigation }) {
+  const { iniciarSesion } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [mostrarPassword, setMostrarPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+const handleLogin = async () => {
+ 
+  if (loading) return;
+  if (!username.trim() || !password) {
+    setError('Completa usuario y contraseña');
+    return;
+  }
+  try {
+    setLoading(true);
+    setError('');
+    Alert.alert('Paso 2', 'URL: ' + process.env.EXPO_PUBLIC_API_URL);
+    const user = await loginRequest(username, password);
+    Alert.alert('Paso 3', 'Login OK: ' + user.usuario);
+    iniciarSesion(user);
+  } catch (err) {
+    Alert.alert('Error', err.message);
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <KeyboardAvoidingView
@@ -88,15 +117,28 @@ export default function LoginScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.button} activeOpacity={0.85}>
-            <Text style={styles.buttonText}>Entrar</Text>
+          {error ? (
+            <Text style={{ color: '#d93025', marginTop: 12, fontSize: 13 }}>{error}</Text>
+          ) : null}
+
+          <TouchableOpacity
+            style={[styles.button, loading && { opacity: 0.7 }]}
+            activeOpacity={0.85}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Entrar</Text>
+            )}
           </TouchableOpacity>
 
           <View style={styles.linksRow}>
             <TouchableOpacity onPress={() => navigation?.navigate('ForgotPassword')}>
               <Text style={styles.link}>¿Olvidaste tu contraseña?</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation?.navigate('Register')}>
+            <TouchableOpacity onPress={() => navigation?.navigate('Registro')}>
               <Text style={styles.link}>Crear cuenta</Text>
             </TouchableOpacity>
           </View>
