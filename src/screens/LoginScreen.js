@@ -1,160 +1,241 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  StatusBar,
-  ActivityIndicator,
-  Alert,
+  View,
 } from 'react-native';
-import styles, { COLORS } from './LoginScreen.styles';
-import { loginRequest } from '../services/auth';
+import { router } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
+import { authApi } from '../services/api';
+import { hasErrors, normalizeEmail, validateLogin } from '../utils/authValidation';
 
-// Pantalla de inicio de sesión (HU1) con el diseño de la web de SportLike.
-export default function LoginScreen({ navigation }) {
+export default function LoginScreen() {
   const { iniciarSesion } = useAuth();
-  const [username, setUsername] = useState('');
+  const [correo, setCorreo] = useState('');
   const [password, setPassword] = useState('');
   const [mostrarPassword, setMostrarPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [errorGeneral, setErrorGeneral] = useState('');
+  const [enviando, setEnviando] = useState(false);
 
-const handleLogin = async () => {
- 
-  if (loading) return;
-  if (!username.trim() || !password) {
-    setError('Completa usuario y contraseña');
-    return;
+  async function submit() {
+    const validationErrors = validateLogin({ correo, password });
+    setErrors(validationErrors);
+    setErrorGeneral('');
+    if (hasErrors(validationErrors)) return;
+
+    setEnviando(true);
+    try {
+      const session = await authApi.login({
+        correo: normalizeEmail(correo),
+        password,
+      });
+      await iniciarSesion(session);
+      router.replace('/perfil');
+    } catch (error) {
+      setErrorGeneral(error.message);
+    } finally {
+      setEnviando(false);
+    }
   }
-  try {
-    setLoading(true);
-    setError('');
-    Alert.alert('Paso 2', 'URL: ' + process.env.EXPO_PUBLIC_API_URL);
-    const user = await loginRequest(username, password);
-    Alert.alert('Paso 3', 'Login OK: ' + user.usuario);
-    iniciarSesion(user);
-  } catch (err) {
-    Alert.alert('Error', err.message);
-    setError(err.message);
-  } finally {
-    setLoading(false);
-  }
-};
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.navy} />
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {/* Encabezado */}
         <View style={styles.hero}>
           <Text style={styles.logo}>
             SPORT<Text style={styles.logoAccent}>LIKE</Text>
           </Text>
-
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>⚡ TIENDA DEPORTIVA EN LÍNEA</Text>
-          </View>
-
           <Text style={styles.heroTitle}>
-            Impulsa tu{'\n'}
-            <Text style={styles.heroAccent}>mejor versión.</Text>
+            Vuelve a tu <Text style={styles.heroAccent}>próxima meta.</Text>
           </Text>
           <Text style={styles.heroSubtitle}>
-            Productos deportivos de alta calidad que combinan innovación, rendimiento y estilo
-            para acompañarte en cada meta.
+            Inicia sesión y continúa con tus compras y pedidos.
           </Text>
-
-          <View style={styles.features}>
-            <Text style={styles.featureText}>🛡 Compra segura</Text>
-            <Text style={styles.featureText}>🚚 Entrega confiable</Text>
-            <Text style={styles.featureText}>↩ Devoluciones claras</Text>
-          </View>
         </View>
 
-        {/* Tarjeta del formulario */}
         <View style={styles.card}>
-          <Text style={styles.eyebrow}>BIENVENIDO DE NUEVO</Text>
+          <Text style={styles.eyebrow}>BIENVENIDO A SPORTLIKE</Text>
           <Text style={styles.title}>Iniciar sesión</Text>
-          <Text style={styles.subtitle}>Accede a tu cuenta SportLike.</Text>
+          <Text style={styles.subtitle}>Ingresa tus datos para continuar.</Text>
 
-          <Text style={styles.label}>Usuario</Text>
+          <Text style={styles.label}>Correo electrónico</Text>
           <TextInput
-            style={styles.input}
-            placeholder="Tu usuario"
-            placeholderTextColor={COLORS.placeholder}
+            accessibilityLabel="Correo electrónico"
             autoCapitalize="none"
-            autoCorrect={false}
-            autoComplete="username"
-            textContentType="username"
-            value={username}
-            onChangeText={setUsername}
+            autoComplete="email"
+            keyboardType="email-address"
+            onChangeText={setCorreo}
+            placeholder="ejemplo@gmail.com"
+            placeholderTextColor={COLORS.placeholder}
+            style={[styles.input, errors.correo && styles.inputError]}
+            textContentType="emailAddress"
+            value={correo}
           />
+          {errors.correo ? <Text style={styles.errorText}>{errors.correo}</Text> : null}
 
-          <Text style={[styles.label, styles.labelSpaced]}>Contraseña</Text>
-          <View style={styles.passwordRow}>
+          <Text style={styles.label}>Contraseña</Text>
+          <View style={[styles.passwordRow, errors.password && styles.inputError]}>
             <TextInput
-              style={styles.passwordInput}
+              accessibilityLabel="Contraseña"
+              autoCapitalize="none"
+              autoComplete="current-password"
+              onChangeText={setPassword}
+              onSubmitEditing={submit}
               placeholder="Tu contraseña"
               placeholderTextColor={COLORS.placeholder}
               secureTextEntry={!mostrarPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="password"
+              style={styles.passwordInput}
               textContentType="password"
               value={password}
-              onChangeText={setPassword}
             />
-            <TouchableOpacity onPress={() => setMostrarPassword(!mostrarPassword)}>
-              <Text style={styles.eyeText}>{mostrarPassword ? '🙈' : '👁'}</Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              onPress={() => setMostrarPassword((value) => !value)}
+            >
+              <Text style={styles.showText}>{mostrarPassword ? 'Ocultar' : 'Mostrar'}</Text>
             </TouchableOpacity>
           </View>
+          {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
 
-          {error ? (
-            <Text style={{ color: '#d93025', marginTop: 12, fontSize: 13 }}>{error}</Text>
+          <TouchableOpacity
+            accessibilityRole="link"
+            onPress={() => router.push('/recuperar-contrasena')}
+            style={styles.forgotWrapper}
+          >
+            <Text style={styles.link}>¿Olvidaste tu contraseña?</Text>
+          </TouchableOpacity>
+
+          {errorGeneral ? (
+            <Text accessibilityLiveRegion="polite" style={styles.generalError}>
+              {errorGeneral}
+            </Text>
           ) : null}
 
           <TouchableOpacity
-            style={[styles.button, loading && { opacity: 0.7 }]}
-            activeOpacity={0.85}
-            onPress={handleLogin}
-            disabled={loading}
+            accessibilityRole="button"
+            disabled={enviando}
+            onPress={submit}
+            style={[styles.button, enviando && styles.buttonDisabled]}
+            testID="login-submit"
           >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
+            {enviando ? (
+              <ActivityIndicator color={COLORS.white} />
             ) : (
-              <Text style={styles.buttonText}>Entrar</Text>
+              <Text style={styles.buttonText}>Iniciar sesión</Text>
             )}
           </TouchableOpacity>
 
-          <View style={styles.linksRow}>
-            <TouchableOpacity onPress={() => navigation?.navigate('ForgotPassword')}>
-              <Text style={styles.link}>¿Olvidaste tu contraseña?</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation?.navigate('Registro')}>
+          <View style={styles.footerRow}>
+            <Text style={styles.footerText}>¿No tienes cuenta? </Text>
+            <TouchableOpacity accessibilityRole="link" onPress={() => router.push('/registro')}>
               <Text style={styles.link}>Crear cuenta</Text>
             </TouchableOpacity>
           </View>
-
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>o continúa con</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <TouchableOpacity style={styles.googleButton} activeOpacity={0.85}>
-            <Text style={styles.googleG}>G</Text>
-            <Text style={styles.googleText}>Iniciar con Google</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
+
+const COLORS = {
+  navy: '#0B1F3A',
+  navyDark: '#07152B',
+  lime: '#B7F02B',
+  white: '#FFFFFF',
+  text: '#0B1F3A',
+  muted: '#5B6B80',
+  border: '#D5DCE6',
+  placeholder: '#738196',
+  link: '#0A4DA2',
+  error: '#B42318',
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.navy },
+  scroll: { flexGrow: 1 },
+  hero: {
+    backgroundColor: COLORS.navy,
+    paddingBottom: 72,
+    paddingHorizontal: 24,
+    paddingTop: 48,
+  },
+  logo: { color: COLORS.white, fontSize: 22, fontWeight: '800', letterSpacing: 4 },
+  logoAccent: { color: COLORS.lime },
+  heroTitle: {
+    color: COLORS.white,
+    fontSize: 32,
+    fontWeight: '800',
+    lineHeight: 38,
+    marginTop: 28,
+  },
+  heroAccent: { color: COLORS.lime },
+  heroSubtitle: { color: '#C5D0E0', fontSize: 14, lineHeight: 20, marginTop: 10 },
+  card: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    flex: 1,
+    marginTop: -32,
+    paddingBottom: 32,
+    paddingHorizontal: 24,
+    paddingTop: 28,
+  },
+  eyebrow: { color: COLORS.muted, fontSize: 10, fontWeight: '700', letterSpacing: 1.5 },
+  title: { color: COLORS.text, fontSize: 26, fontWeight: '800', marginTop: 4 },
+  subtitle: { color: COLORS.muted, fontSize: 13, marginBottom: 20, marginTop: 2 },
+  label: { color: COLORS.text, fontSize: 12, fontWeight: '700', marginBottom: 6 },
+  input: {
+    backgroundColor: COLORS.white,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    color: COLORS.text,
+    fontSize: 14,
+    height: 48,
+    marginBottom: 6,
+    paddingHorizontal: 12,
+  },
+  passwordRow: {
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    height: 48,
+    paddingHorizontal: 12,
+  },
+  passwordInput: { color: COLORS.text, flex: 1, fontSize: 14 },
+  inputError: { borderColor: COLORS.error },
+  errorText: { color: COLORS.error, fontSize: 12, marginBottom: 12 },
+  generalError: { color: COLORS.error, fontSize: 13, marginBottom: 12, textAlign: 'center' },
+  showText: { color: COLORS.link, fontSize: 12, fontWeight: '700' },
+  forgotWrapper: { alignSelf: 'flex-end', marginBottom: 22, marginTop: 12 },
+  link: {
+    color: COLORS.link,
+    fontSize: 12,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
+  button: {
+    alignItems: 'center',
+    backgroundColor: COLORS.navyDark,
+    borderRadius: 8,
+    height: 48,
+    justifyContent: 'center',
+  },
+  buttonDisabled: { opacity: 0.65 },
+  buttonText: { color: COLORS.white, fontSize: 15, fontWeight: '800' },
+  footerRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 18 },
+  footerText: { color: COLORS.muted, fontSize: 12 },
+});

@@ -1,0 +1,127 @@
+name: CI/CD SportLike
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches:
+      - develop
+      - main
+      - 'feature/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cd-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 22.13.1
+
+jobs:
+  quality:
+    name: 1. Calidad de código
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Instalar dependencias reproducibles
+        run: npm ci
+      - name: Revisar estilo
+        run: npm run lint
+      - name: Comprobar tipos
+        run: npm run typecheck
+      - name: Validar configuración Expo
+        run: npx expo-doctor
+
+  functional-tests:
+    name: 2. Pruebas funcionales
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Instalar dependencias reproducibles
+        run: npm ci
+      - name: Ejecutar pruebas con cobertura
+        run: npm run test:coverage
+      - name: Conservar evidencia de cobertura
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobertura-pruebas-${{ github.run_number }}
+          path: coverage/
+          if-no-files-found: error
+          retention-days: 14
+
+  dependency-security:
+    name: 3. Seguridad de dependencias
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Instalar dependencias reproducibles
+        run: npm ci
+      - name: Bloquear vulnerabilidades altas o críticas
+        run: npm audit --audit-level=high
+
+  codeql:
+    name: 4. Análisis de seguridad CodeQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+      - name: Inicializar CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+      - name: Analizar código
+        uses: github/codeql-action/analyze@v3
+
+  android-delivery:
+    name: 5. Compilación y entrega Android
+    needs: [quality, functional-tests, dependency-security, codeql]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Instalar dependencias reproducibles
+        run: npm ci
+      - name: Generar paquete exportable para Android
+        run: npm run export:android
+      - name: Publicar artefacto de entrega
+        uses: actions/upload-artifact@v4
+        with:
+          name: sportlike-android-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14

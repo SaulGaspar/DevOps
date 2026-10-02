@@ -1,28 +1,39 @@
-\# Guía de contribución
+# Guía de contribución
 
+## Flujo de trabajo
 
+1. Selecciona un issue asignado a ti y confirma su milestone.
+2. Crea la rama desde `develop`: `feature/nombre-corto`.
+3. Realiza cambios pequeños y relacionados con una sola tarea.
+4. Ejecuta `npm run validate` antes de subir los cambios.
+5. Realiza push de la rama y comprueba GitHub Actions.
+6. Abre un Pull Request hacia `develop` y relaciónalo con el issue.
+7. Solicita la aprobación de otro integrante.
+8. Corrige los errores del pipeline o de la revisión.
+9. Realiza merge solamente cuando las verificaciones estén aprobadas.
 
-\## Reglas
+No se trabaja directamente sobre `main` ni `develop`.
 
-1\. No se trabaja directamente sobre main ni develop.
+## Formato de commits
 
-2\. Cada historia de usuario o tarea tiene su rama: feature/nombre-corto.
+Usa el formato `tipo: descripción corta`.
 
-3\. Las ramas se crean a partir de develop.
+- `feat`: nueva funcionalidad.
+- `fix`: corrección.
+- `test`: pruebas.
+- `docs`: documentación.
+- `refactor`: reorganización sin cambiar funcionalidad.
+- `chore`: configuración o mantenimiento.
 
-4\. Los cambios se integran mediante Pull Request hacia develop.
+Ejemplo: `feat: valida formulario de inicio de sesión`.
 
-5\. Cada Pull Request necesita al menos una revisión de otro integrante.
+## Pull Requests
 
-6\. Cada Pull Request se relaciona con su issue (por ejemplo: Closes #3).
+Cada Pull Request debe incluir:
 
-
-
-\## Formato de commits
-
-tipo: descripción corta
-
-Tipos: feat, fix, docs, style, refactor, test, chore
-
-Ejemplo: feat: agrega pantalla de inicio de sesión
-
+- objetivo del cambio;
+- lista de cambios realizados;
+- pruebas funcionales y de seguridad ejecutadas;
+- issue relacionado mediante `Closes #n`;
+- evidencia del pipeline aprobado;
+- aprobación de al menos otro integrante.
