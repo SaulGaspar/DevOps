@@ -31,7 +31,8 @@ del paquete de la aplicación y nunca deben contener secretos.
 - `src/context`: sesión y estado de autenticación.
 - `src/services`: comunicación con la API.
 - `src/utils`: validaciones reutilizables.
-- `__tests__`: pruebas funcionales y unitarias.
+- `__tests__`: pruebas unitarias, de integración y de regresión.
+- `tests/performance`: pruebas de rendimiento y esfuerzo controlado sobre la API.
 - `.github/workflows`: integración continua y análisis de seguridad.
 
 ## Validaciones locales
@@ -39,7 +40,9 @@ del paquete de la aplicación y nunca deben contener secretos.
 ```powershell
 npm run lint
 npm run typecheck
-npm test
+npm run test:unit
+npm run test:integration
+npm run test:regression
 npx expo-doctor
 npm run export:android
 ```
@@ -51,11 +54,20 @@ El comando `npm run validate` ejecuta todas las comprobaciones anteriores de for
 GitHub Actions ejecuta automáticamente estas etapas en cada `push` a `develop`, `main` o
 `feature/**`, y en cada Pull Request dirigido a `develop` o `main`:
 
-1. Calidad de código: lint, tipos y diagnóstico de Expo.
-2. Pruebas funcionales: Jest con reporte de cobertura descargable.
-3. Seguridad de dependencias: bloquea vulnerabilidades altas o críticas.
-4. Seguridad del código: análisis CodeQL para JavaScript y TypeScript.
-5. Entrega Android: genera `dist/` y lo publica como artefacto cuando las etapas anteriores pasan.
+1. Análisis estático: ESLint, TypeScript y diagnóstico de Expo.
+2. Pruebas unitarias: Jest valida funciones aisladas de autenticación y catálogo.
+3. Pruebas de integración: React Native Testing Library valida la colaboración entre pantalla,
+   servicio y navegación, con dependencias externas simuladas.
+4. Regresión: se ejecuta toda la suite de Jest y se conserva la cobertura.
+5. Seguridad: `npm audit` y CodeQL.
+6. Validación de entrega Android: genera `dist/` sólo cuando pasan las etapas anteriores.
+
+Las pruebas móviles de aceptación de extremo a extremo se realizarán con Maestro sobre un build
+Android/iOS en el Sprint 6. El workflow manual `Rendimiento y esfuerzo de API` usa k6 únicamente
+contra un entorno de pruebas expresamente confirmado; no debe apuntarse a producción.
+
+La selección de herramientas, el momento de ejecución y los criterios de salida se documentan en
+[`TESTING_STRATEGY.md`](TESTING_STRATEGY.md).
 
 El flujo también puede ejecutarse manualmente desde la pestaña **Actions**. Los artefactos se
 conservan durante 14 días como evidencia de pruebas y entrega.

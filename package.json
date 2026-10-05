@@ -36,9 +36,12 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "jest --runInBand",
-    "test:coverage": "jest --runInBand --coverage",
+    "test:unit": "jest --runInBand __tests__/authValidation.test.js __tests__/productCatalog.test.js",
+    "test:integration": "jest --runInBand __tests__/LoginScreen.test.js",
+    "test:regression": "jest --runInBand --coverage",
+    "test:coverage": "npm run test:regression",
     "export:android": "expo export --platform android --output-dir dist",
-    "validate": "npm run lint && npm run typecheck && npm test && npx expo-doctor && npm run export:android"
+    "validate": "npm run lint && npm run typecheck && npm run test:unit && npm run test:integration && npm run test:regression && npx expo-doctor && npm run export:android"
   },
   "jest": {
     "preset": "jest-expo",

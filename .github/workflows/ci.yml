@@ -21,8 +21,8 @@ env:
   NODE_VERSION: 22.13.1
 
 jobs:
-  quality:
-    name: 1. Calidad de código
+  static-analysis:
+    name: 1. Análisis estático
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -42,8 +42,8 @@ jobs:
       - name: Validar configuración Expo
         run: npx expo-doctor
 
-  functional-tests:
-    name: 2. Pruebas funcionales
+  unit-tests:
+    name: 2. Pruebas unitarias
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -56,8 +56,42 @@ jobs:
           cache: npm
       - name: Instalar dependencias reproducibles
         run: npm ci
-      - name: Ejecutar pruebas con cobertura
-        run: npm run test:coverage
+      - name: Ejecutar pruebas unitarias
+        run: npm run test:unit
+
+  integration-tests:
+    name: 3. Pruebas de integración
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Instalar dependencias reproducibles
+        run: npm ci
+      - name: Probar la integración pantalla-servicio-navegación
+        run: npm run test:integration
+
+  regression-tests:
+    name: 4. Pruebas de regresión y cobertura
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Instalar dependencias reproducibles
+        run: npm ci
+      - name: Ejecutar la suite completa con cobertura
+        run: npm run test:regression
       - name: Conservar evidencia de cobertura
         uses: actions/upload-artifact@v4
         with:
@@ -67,7 +101,7 @@ jobs:
           retention-days: 14
 
   dependency-security:
-    name: 3. Seguridad de dependencias
+    name: 5. Seguridad de dependencias
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -84,7 +118,7 @@ jobs:
         run: npm audit --audit-level=high
 
   codeql:
-    name: 4. Análisis de seguridad CodeQL
+    name: 6. Análisis de seguridad CodeQL
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -102,8 +136,8 @@ jobs:
         uses: github/codeql-action/analyze@v3
 
   android-delivery:
-    name: 5. Compilación y entrega Android
-    needs: [quality, functional-tests, dependency-security, codeql]
+    name: 7. Validación de entrega Android
+    needs: [static-analysis, unit-tests, integration-tests, regression-tests, dependency-security, codeql]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

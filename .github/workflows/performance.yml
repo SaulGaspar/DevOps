@@ -1,0 +1,33 @@
+name: Rendimiento y esfuerzo de API
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: URL base del entorno de pruebas (staging), sin ruta final
+        required: true
+        type: string
+      confirm_test_environment:
+        description: Confirmo que la URL es un entorno autorizado para generar carga
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  k6:
+    name: Prueba controlada con k6
+    if: ${{ inputs.confirm_test_environment == true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+      - name: Ejecutar rendimiento y esfuerzo sobre staging
+        uses: grafana/run-k6-action@v1
+        env:
+          API_BASE_URL: ${{ inputs.api_base_url }}
+        with:
+          path: tests/performance/api-load.js
