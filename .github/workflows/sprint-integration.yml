@@ -1,0 +1,63 @@
+name: PI de cierre de sprint
+
+on:
+  workflow_dispatch:
+    inputs:
+      sprint:
+        description: Número del sprint que se cierra
+        required: true
+        type: choice
+        options: ['1', '2', '3', '4', '5', '6']
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    name: Integración del sprint ${{ inputs.sprint }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar rama integrada
+        shell: bash
+        run: |
+          case "$GITHUB_REF" in
+            refs/heads/develop|refs/heads/release/*) ;;
+            *) echo 'Ejecutar el cierre en develop o release/*'; exit 1 ;;
+          esac
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.1
+          cache: npm
+      - run: npm ci
+      - name: Ejecutar PI y conservar resultados
+        run: npm run test:integration -- --json --outputFile=integration-results.json
+      - name: Guardar evidencia del sprint y commit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PI-sprint-${{ inputs.sprint }}-${{ github.sha }}
+          path: integration-results.json
+          if-no-files-found: warn
+          retention-days: 90
+
+  regression:
+    name: Regresión posterior a PI
+    needs: integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.1
+          cache: npm
+      - run: npm ci
+      - run: npm run test:regression
+      - uses: actions/upload-artifact@v4
+        with:
+          name: regresion-sprint-${{ inputs.sprint }}-${{ github.sha }}
+          path: coverage/
+          if-no-files-found: error
+          retention-days: 90

@@ -61,6 +61,28 @@ altas/críticas mediante versiones compatibles y volver a validar Expo Doctor y 
 
 ## Criterios de seguridad
 
+## PU por funcionalidad y PI al cierre del sprint
+
+Las PU se ejecutan durante el desarrollo de cada funcionalidad: `npm run test:unit:auth`
+para validaciones de autenticación y `npm run test:unit:catalog` para lógica del catálogo.
+Las funcionalidades nuevas deben agregar sus casos; estos comandos no acreditan HU aún sin pruebas.
+
+Al finalizar cada sprint, después de integrar sus HU en `develop` o `release/*`, ejecutar
+en Actions **PI de cierre de sprint**, seleccionar esa rama y el número del sprint.
+El workflow conserva resultados asociados al sprint y al commit por 90 días.
+Primero ejecuta PI y, sólo si aprueba, ejecuta regresión en secuencia. El CI frecuente conserva
+PI preventivas: no reemplazan la ejecución identificada de cierre.
+
+En el CI habitual los controles se ejecutan en paralelo y la exportación espera a todos.
+Un workflow atiende los eventos push y pull_request sin crear un workflow por tipo de prueba.
+El merge produce un push a la rama destino; `git pull` sólo actualiza la copia local y no
+dispara Actions. Revisar origen y destino del PR y los checks antes de integrar.
+
+La PI actual usa límites externos simulados. Para aprobar integración real falta configurar
+un backend de staging y casos con datos de prueba; no se debe afirmar aprobación extremo a extremo.
+Maestro requiere vinculación EAS e identificadores del equipo; k6 requiere staging autorizado.
+No se inventan estos valores ni se ejecuta carga contra producción.
+
 La prueba de esfuerzo se mantiene separada del CI frecuente porque genera tráfico real. El workflow
 exige una URL de staging y una confirmación explícita. Sus umbrales iniciales son menos de 1 % de
 errores y percentil 95 menor a 2 segundos; deben ajustarse con datos reales del proyecto.
