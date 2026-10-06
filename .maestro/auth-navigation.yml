@@ -1,0 +1,11 @@
+appId: ${APP_ID}
+---
+- launchApp:
+    clearState: true
+- tapOn: 'Perfil.*'
+- assertVisible: 'Inicia sesión o regístrate'
+- tapOn: 'Iniciar sesión'
+- tapOn:
+    id: 'login-submit'
+- assertVisible: 'Ingresa tu correo electrónico.'
+- assertVisible: 'Ingresa tu contraseña.'

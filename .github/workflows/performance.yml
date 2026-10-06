@@ -25,9 +25,19 @@ jobs:
     steps:
       - name: Descargar código
         uses: actions/checkout@v4
+      - name: Instalar k6
+        uses: grafana/setup-k6-action@v1
       - name: Ejecutar rendimiento y esfuerzo sobre staging
         uses: grafana/run-k6-action@v1
         env:
           API_BASE_URL: ${{ inputs.api_base_url }}
         with:
           path: tests/performance/api-load.js
+          flags: --summary-export=performance-summary.json
+      - name: Conservar evidencia de rendimiento y esfuerzo
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendimiento-api-${{ github.sha }}
+          path: performance-summary.json
+          if-no-files-found: warn

@@ -37,7 +37,7 @@
     "typecheck": "tsc --noEmit",
     "test": "jest --runInBand",
     "test:unit": "jest --runInBand __tests__/authValidation.test.js __tests__/productCatalog.test.js",
-    "test:integration": "jest --runInBand __tests__/LoginScreen.test.js",
+    "test:integration": "jest --runInBand __tests__/LoginScreen.test.js __tests__/api.integration.test.js",
     "test:regression": "jest --runInBand --coverage",
     "test:coverage": "npm run test:regression",
     "export:android": "expo export --platform android --output-dir dist",

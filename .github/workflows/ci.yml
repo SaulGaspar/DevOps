@@ -9,6 +9,9 @@ on:
       - develop
       - main
       - 'feature/**'
+      - 'release/**'
+      - 'hotfix/**'
+    tags: ['v*']
 
 permissions:
   contents: read
@@ -115,7 +118,14 @@ jobs:
       - name: Instalar dependencias reproducibles
         run: npm ci
       - name: Bloquear vulnerabilidades altas o críticas
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=high --json > dependency-audit.json
+      - name: Conservar reporte de seguridad
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auditoria-dependencias-${{ github.sha }}
+          path: dependency-audit.json
+          if-no-files-found: warn
 
   codeql:
     name: 6. Análisis de seguridad CodeQL

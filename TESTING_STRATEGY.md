@@ -7,9 +7,9 @@ lo que ya está automatizado de lo programado para las ramas de estabilización.
 | --- | --- | --- | --- |
 | Análisis estático | ESLint, TypeScript, Expo Doctor y CodeQL | En cada `push` a `feature/**`, `develop` o `main`, y en PR a `develop` o `main` | Automatizado |
 | Unitaria | Jest con `jest-expo` | Antes del commit y en cada ejecución de CI | Automatizado |
-| Integración | Jest y React Native Testing Library | En cada `push` y PR; valida pantalla, servicio y navegación con límites externos simulados | Automatizado |
+| Integración | Jest y React Native Testing Library | En cada `push` y PR; valida pantalla y contrato del cliente HTTP con límites externos simulados | Automatizado; no equivale a validar el backend real |
 | Regresión | Suite completa de Jest con cobertura | En cada `push` y PR; obligatoria antes de integrar | Automatizado |
-| Aceptación móvil | Maestro en emulador/simulador con un build de desarrollo | En `release/<versión>` y antes de etiquetar una versión candidata | Programado para Sprint 6; requiere configurar EAS/build e identificadores móviles |
+| Aceptación móvil | Maestro en emulador/simulador con build instalable | Antes de aprobar `release/<versión>` | Configuración en `.eas/workflows/acceptance.yml`; ejecución pendiente de vincular EAS e identificadores |
 | Rendimiento móvil | Métricas del build y perfilado en dispositivo Android/iOS | En la estabilización de `release/<versión>` | Programado para Sprint 6 |
 | Rendimiento y esfuerzo de API | k6 con umbrales de latencia y errores | Manualmente sobre staging antes de una versión candidata; nunca contra producción sin autorización | Workflow manual disponible |
 
@@ -25,6 +25,39 @@ lo que ya está automatizado de lo programado para las ramas de estabilización.
 Las versiones candidatas pueden identificarse como `v1.0.0-rc.1`; después de aprobar aceptación,
 rendimiento y esfuerzo se publica `v1.0.0`. Una corrección compatible incrementa PARCHE, una nueva
 función compatible incrementa MENOR y un cambio incompatible incrementa MAYOR.
+
+El CI también se activa en `release/**`, `hotfix/**` y etiquetas `v*`. Los jobs 1–6 se
+ejecutan en paralelo; la exportación Android espera a que todos aprueben. `dist/` es una
+exportación de JavaScript y recursos, no un APK ni una publicación en tienda.
+
+## Activación de aceptación y rendimiento móvil
+
+1. Vincular el proyecto con Expo/EAS y configurar `android.package` e `ios.bundleIdentifier`
+   con los identificadores acordados por el equipo.
+2. Definir `APP_ID` en los jobs Maestro con el identificador correspondiente a cada plataforma
+   y configurar la API de staging en el ambiente `preview` de EAS.
+3. Ejecutar `npx eas-cli@latest workflow:run .eas/workflows/acceptance.yml` antes de aprobar release.
+   Conservar el reporte y evidencia de Android/iOS. El flujo actual comprueba navegación y
+   validación del login; ampliar catálogo y compra cuando estén implementados.
+4. Medir en build de release tiempos de apertura, respuesta al navegar, fluidez del catálogo
+   y memoria con React Native DevTools/Android Studio Profiler e Instruments en iOS. Registrar
+   dispositivo, sistema, commit, condiciones de red y línea base para comparar regresiones.
+
+La aceptación del usuario exige además revisar los criterios de cada HU y registrar la aprobación
+del equipo. Maestro automatiza recorridos, pero no reemplaza esa revisión. El perfilado móvil no
+queda cubierto por k6, que mide exclusivamente la API.
+
+## Evidencia y pendientes
+
+Las pruebas del cliente HTTP simulan únicamente `fetch` y ejecutan el servicio real de la app.
+Comprueban sesión, rutas, filtros y errores. Una prueba contra staging debe añadirse cuando el
+equipo disponga de ese ambiente. No hay evidencia todavía de ejecución Maestro ni de esfuerzo;
+la configuración disponible no constituye una prueba aprobada.
+
+El run 37382996166 aprobó análisis estático, unitarias, integración, regresión y CodeQL,
+pero falló en auditoría de dependencias. Se conserva el bloqueo y se publica el reporte de
+auditoría como evidencia. La entrega no está aprobada hasta resolver las vulnerabilidades
+altas/críticas mediante versiones compatibles y volver a validar Expo Doctor y las pruebas.
 
 ## Criterios de seguridad
 

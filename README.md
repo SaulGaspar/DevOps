@@ -52,7 +52,7 @@ El comando `npm run validate` ejecuta todas las comprobaciones anteriores de for
 ## Pipeline CI/CD
 
 GitHub Actions ejecuta automáticamente estas etapas en cada `push` a `develop`, `main` o
-`feature/**`, y en cada Pull Request dirigido a `develop` o `main`:
+`feature/**`, `release/**` o `hotfix/**`, en etiquetas `v*`, y en cada Pull Request dirigido a `develop` o `main`:
 
 1. Análisis estático: ESLint, TypeScript y diagnóstico de Expo.
 2. Pruebas unitarias: Jest valida funciones aisladas de autenticación y catálogo.
@@ -62,8 +62,9 @@ GitHub Actions ejecuta automáticamente estas etapas en cada `push` a `develop`,
 5. Seguridad: `npm audit` y CodeQL.
 6. Validación de entrega Android: genera `dist/` sólo cuando pasan las etapas anteriores.
 
-Las pruebas móviles de aceptación de extremo a extremo se realizarán con Maestro sobre un build
-Android/iOS en el Sprint 6. El workflow manual `Rendimiento y esfuerzo de API` usa k6 únicamente
+El workflow `.eas/workflows/acceptance.yml` prepara builds Android/iOS y pruebas de aceptación
+Maestro para Sprint 6. Requiere vincular Expo/EAS, definir los identificadores móviles y `APP_ID`.
+El workflow manual `Rendimiento y esfuerzo de API` usa k6 únicamente
 contra un entorno de pruebas expresamente confirmado; no debe apuntarse a producción.
 
 La selección de herramientas, el momento de ejecución y los criterios de salida se documentan en
