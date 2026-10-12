@@ -47,5 +47,16 @@
       "!src/app/**"
     ]
   },
+  "expo": {
+    "install": {
+      "exclude": [
+        "expo",
+        "expo-constants",
+        "expo-linking",
+        "expo-router",
+        "jest-expo"
+      ]
+    }
+  },
   "private": true
 }
