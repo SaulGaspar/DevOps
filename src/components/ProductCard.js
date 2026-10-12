@@ -1,9 +1,11 @@
-import { memo, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { memo } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import ProgressiveImage from './ProgressiveImage';
 import { formatPrice } from '../utils/productCatalog';
 
+
+
 function ProductCard({ product, onPress }) {
-  const [loadingImage, setLoadingImage] = useState(Boolean(product.imagenUrl));
   const soldOut = product.stock_total <= 0;
 
   return (
@@ -13,21 +15,20 @@ function ProductCard({ product, onPress }) {
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
+
       <View style={styles.imageBox}>
-        {product.imagenUrl ? (
-          <Image
-            accessibilityLabel={`Imagen de ${product.nombre}`}
-            onLoadEnd={() => setLoadingImage(false)}
-            resizeMode="cover"
-            source={{ uri: product.imagenUrl }}
-            style={styles.image}
-          />
-        ) : (
-          <Text style={styles.placeholder}>Sin imagen</Text>
-        )}
-        {loadingImage ? <ActivityIndicator color="#0B1F3A" style={styles.loader} /> : null}
-        {soldOut ? <Text style={styles.stockBadge}>Agotado</Text> : null}
+        <ProgressiveImage
+          label={`Imagen de ${product.nombre}`}
+          style={styles.image}
+          uri={product.imagenUrl}
+          width={400}
+        />
+
+        {soldOut ? (
+          <Text style={styles.stockBadge}>Agotado</Text>
+        ) : null}
       </View>
+
       <View style={styles.content}>
         <Text numberOfLines={1} style={styles.brand}>
           {product.marca || product.categoria || 'SportLike'}
