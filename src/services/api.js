@@ -102,10 +102,10 @@ function normalizeSession(payload) {
 }
 
 export const authApi = {
-  async login({ correo, password }) {
+  async login({ usuario, password }) {
     const payload = await request(LOGIN_PATH, {
       method: 'POST',
-      body: { correo, password },
+      body: { usuario, password },
     });
     return normalizeSession(payload);
   },
@@ -131,7 +131,6 @@ export const authApi = {
     });
   },
 };
-
 export const productApi = {
   list(filters = {}) {
     const params = new URLSearchParams();
@@ -156,3 +155,4 @@ export const productApi = {
     );
   },
 };
+

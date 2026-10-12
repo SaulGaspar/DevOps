@@ -32,7 +32,7 @@ describe('LoginScreen', () => {
 
     await fireEvent.press(getByTestId('login-submit'));
 
-    expect(getByText('Ingresa tu correo electrónico.')).toBeTruthy();
+    expect(getByText('Ingresa tu usuario.')).toBeTruthy();
     expect(getByText('Ingresa tu contraseña.')).toBeTruthy();
     expect(authApi.login).not.toHaveBeenCalled();
   });
@@ -44,14 +44,14 @@ describe('LoginScreen', () => {
     });
     const { getByLabelText, getByTestId } = await render(<LoginScreen />);
 
-    await fireEvent.changeText(getByLabelText('Correo electrónico'), 'SAUL@example.com');
-    await fireEvent.changeText(getByLabelText('Contraseña'), 'Segura123');
+    await fireEvent.changeText(getByLabelText('Usuario'), 'saulgaspar');
+    await fireEvent.changeText(getByLabelText('Contraseña'), 'Segura123!');
     await fireEvent.press(getByTestId('login-submit'));
 
     await waitFor(() => {
       expect(authApi.login).toHaveBeenCalledWith({
-        correo: 'saul@example.com',
-        password: 'Segura123',
+        usuario: 'saulgaspar',
+        password: 'Segura123!',
       });
       expect(mockIniciarSesion).toHaveBeenCalled();
       expect(mockReplace).toHaveBeenCalledWith('/perfil');

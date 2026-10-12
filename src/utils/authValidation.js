@@ -12,12 +12,9 @@ export function validateEmail(value = '') {
   return '';
 }
 
-export function validateLogin({ correo = '', password = '' }) {
+export function validateLogin({ usuario = '', password = '' }) {
   const errors = {};
-  const normalizedEmail = normalizeEmail(correo);
-
-  const emailError = validateEmail(normalizedEmail);
-  if (emailError) errors.correo = emailError;
+  if (!usuario.trim()) errors.usuario = 'Ingresa tu usuario.';
 
   if (!password) {
     errors.password = 'Ingresa tu contraseña.';
@@ -50,13 +47,11 @@ export function validateRegister(values) {
   if (telefono.length !== 10) {
     errors.telefono = 'El teléfono debe contener 10 dígitos.';
   }
-  if (values.usuario.trim().length < 3) {
-    errors.usuario = 'El usuario debe contener al menos 3 caracteres.';
+  if (!/^[A-Za-z0-9]{4,20}$/.test(values.usuario.trim())) {
+    errors.usuario = 'El usuario debe tener entre 4 y 20 caracteres alfanuméricos.';
   }
-  if (values.password.length < 8) {
-    errors.password = 'La contraseña debe contener al menos 8 caracteres.';
-  } else if (!/[A-Za-z]/.test(values.password) || !/\d/.test(values.password)) {
-    errors.password = 'La contraseña debe incluir letras y números.';
+  if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(values.password)) {
+    errors.password = 'Incluye 8 caracteres, mayúscula, minúscula, número y símbolo.';
   }
   if (values.confirmarPassword !== values.password) {
     errors.confirmarPassword = 'Las contraseñas no coinciden.';

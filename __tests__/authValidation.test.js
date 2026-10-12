@@ -11,16 +11,16 @@ describe('validaciones de autenticación', () => {
     expect(normalizeEmail('  Saul@Example.COM ')).toBe('saul@example.com');
   });
 
-  test('rechaza un login vacío o con correo inválido', () => {
-    expect(validateLogin({ correo: '', password: '' })).toEqual({
-      correo: 'Ingresa tu correo electrónico.',
+  test('rechaza un login vacío', () => {
+    expect(validateLogin({ usuario: '', password: '' })).toEqual({
+      usuario: 'Ingresa tu usuario.',
       password: 'Ingresa tu contraseña.',
     });
     expect(validateEmail('correo-invalido')).toBe('Ingresa un correo electrónico válido.');
   });
 
-  test('acepta credenciales con formato válido', () => {
-    expect(validateLogin({ correo: 'saul@example.com', password: 'Segura123' })).toEqual({});
+  test('acepta credenciales con usuario válido', () => {
+    expect(validateLogin({ usuario: 'saulgaspar', password: 'Segura123!' })).toEqual({});
   });
 
   test('valida los datos críticos del registro', () => {
@@ -31,9 +31,9 @@ describe('validaciones de autenticación', () => {
       fechaNacimiento: '2000-10-10',
       correo: 'saul@example.com',
       telefono: '7711234567',
-      usuario: 'saul',
-      password: 'Segura123',
-      confirmarPassword: 'Segura123',
+      usuario: 'saulgaspar',
+      password: 'Segura123!',
+      confirmarPassword: 'Segura123!',
       aceptaTerminos: true,
     });
 

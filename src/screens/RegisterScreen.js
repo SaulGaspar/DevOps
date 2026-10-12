@@ -68,8 +68,8 @@ export default function RegisterScreen() {
     try {
       const result = await authApi.register({
         nombre: values.nombre.trim(),
-        apellidoPaterno: values.apellidoPaterno.trim(),
-        apellidoMaterno: values.apellidoMaterno.trim(),
+        apellidoP: values.apellidoPaterno.trim(),
+        apellidoM: values.apellidoMaterno.trim(),
         fechaNacimiento: values.fechaNacimiento,
         correo: normalizeEmail(values.correo),
         telefono: values.telefono.replace(/\D/g, ''),

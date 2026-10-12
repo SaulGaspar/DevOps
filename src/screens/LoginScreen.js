@@ -13,11 +13,11 @@ import {
 import { router } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
 import { authApi } from '../services/api';
-import { hasErrors, normalizeEmail, validateLogin } from '../utils/authValidation';
+import { hasErrors, validateLogin } from '../utils/authValidation';
 
 export default function LoginScreen() {
   const { iniciarSesion } = useAuth();
-  const [correo, setCorreo] = useState('');
+  const [usuario, setUsuario] = useState('');
   const [password, setPassword] = useState('');
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const [errors, setErrors] = useState({});
@@ -25,7 +25,7 @@ export default function LoginScreen() {
   const [enviando, setEnviando] = useState(false);
 
   async function submit() {
-    const validationErrors = validateLogin({ correo, password });
+    const validationErrors = validateLogin({ usuario, password });
     setErrors(validationErrors);
     setErrorGeneral('');
     if (hasErrors(validationErrors)) return;
@@ -33,7 +33,7 @@ export default function LoginScreen() {
     setEnviando(true);
     try {
       const session = await authApi.login({
-        correo: normalizeEmail(correo),
+        usuario: usuario.trim(),
         password,
       });
       await iniciarSesion(session);
@@ -68,20 +68,19 @@ export default function LoginScreen() {
           <Text style={styles.title}>Iniciar sesión</Text>
           <Text style={styles.subtitle}>Ingresa tus datos para continuar.</Text>
 
-          <Text style={styles.label}>Correo electrónico</Text>
+          <Text style={styles.label}>Usuario</Text>
           <TextInput
-            accessibilityLabel="Correo electrónico"
+            accessibilityLabel="Usuario"
             autoCapitalize="none"
-            autoComplete="email"
-            keyboardType="email-address"
-            onChangeText={setCorreo}
-            placeholder="ejemplo@gmail.com"
+            autoComplete="username"
+            onChangeText={setUsuario}
+            placeholder="Tu nombre de usuario"
             placeholderTextColor={COLORS.placeholder}
-            style={[styles.input, errors.correo && styles.inputError]}
-            textContentType="emailAddress"
-            value={correo}
+            style={[styles.input, errors.usuario && styles.inputError]}
+            textContentType="username"
+            value={usuario}
           />
-          {errors.correo ? <Text style={styles.errorText}>{errors.correo}</Text> : null}
+          {errors.usuario ? <Text style={styles.errorText}>{errors.usuario}</Text> : null}
 
           <Text style={styles.label}>Contraseña</Text>
           <View style={[styles.passwordRow, errors.password && styles.inputError]}>

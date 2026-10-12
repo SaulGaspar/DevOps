@@ -28,10 +28,10 @@ describe('integración del cliente móvil con el contrato HTTP de la API', () =>
 
   test('envía credenciales y normaliza la sesión del backend', async () => {
     respond({ data: { access_token: 'token-test', user: { nombre: 'Saúl' } } });
-    await expect(authApi.login({ correo: 'saul@example.com', password: 'Prueba123' }))
+    await expect(authApi.login({ usuario: 'saulgaspar', password: 'Prueba123!' }))
       .resolves.toEqual({ token: 'token-test', usuario: { nombre: 'Saúl' } });
     expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/auth/login'),
-      expect.objectContaining({ method: 'POST', body: JSON.stringify({ correo: 'saul@example.com', password: 'Prueba123' }) }));
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ usuario: 'saulgaspar', password: 'Prueba123!' }) }));
   });
 
   test('codifica filtros y conserva los productos recibidos', async () => {
@@ -49,13 +49,13 @@ describe('integración del cliente móvil con el contrato HTTP de la API', () =>
 
   test('propaga errores HTTP con su estado y mensaje', async () => {
     respond({ message: 'Credenciales inválidas' }, 401);
-    await expect(authApi.login({ correo: 'saul@example.com', password: 'Incorrecta' }))
+    await expect(authApi.login({ usuario: 'saulgaspar', password: 'Incorrecta!' }))
       .rejects.toMatchObject({ status: 401, message: 'Credenciales inválidas' });
   });
 
   test('rechaza una sesión que no contiene token', async () => {
     respond({ usuario: { nombre: 'Saúl' } });
-    await expect(authApi.login({ correo: 'saul@example.com', password: 'Prueba123' }))
+    await expect(authApi.login({ usuario: 'saulgaspar', password: 'Prueba123!' }))
       .rejects.toThrow('La API no devolvió un token');
   });
 
