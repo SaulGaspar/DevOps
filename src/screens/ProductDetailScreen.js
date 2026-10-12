@@ -3,10 +3,12 @@ import { ActivityIndicator, Alert, Dimensions, FlatList, Image, Pressable, Scrol
 import { router, useLocalSearchParams } from 'expo-router';
 import { productApi } from '../services/api';
 import { formatPrice, normalizeProduct } from '../utils/productCatalog';
+import { useCart } from '../context/CartContext';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 export default function ProductDetailScreen() {
+  const { items, add } = useCart();
   const { id } = useLocalSearchParams();
   const galleryRef = useRef(null);
   const [product, setProduct] = useState(null);
@@ -50,9 +52,15 @@ export default function ProductDetailScreen() {
       Alert.alert('Completa tu selección', 'Selecciona talla y color antes de agregar el producto.');
       return;
     }
+    const used = items.filter((item) => item.product.id === product.id).reduce((sum, item) => sum + item.quantity, 0);
+    if (used >= product.stock_total) {
+      Alert.alert('Límite de existencias', 'Ya agregaste todas las unidades disponibles de este producto.');
+      return;
+    }
+    add(product, selectedSize, selectedColor);
     Alert.alert(
-      'Producto preparado',
-      `${product.nombre}${selectedSize ? ` · Talla ${selectedSize}` : ''}${selectedColor ? ` · ${selectedColor}` : ''}. Selección confirmada.`,
+      'Agregado al carrito',
+      `${product.nombre}${selectedSize ? ` · Talla ${selectedSize}` : ''}${selectedColor ? ` · ${selectedColor}` : ''}.`,
       [{ text: 'Seguir viendo', style: 'cancel' }, { text: 'Ir al carrito', onPress: () => router.push('/carrito') }],
     );
   }
