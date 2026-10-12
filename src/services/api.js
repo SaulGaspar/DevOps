@@ -80,6 +80,12 @@ async function request(path, { method = 'GET', body, token } = {}) {
   }
 }
 
+export function resolveApiAssetUrl(value) {
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value)) return value;
+  return `${requireApiUrl()}${value.startsWith('/') ? value : `/${value}`}`;
+}
+
 function normalizeSession(payload) {
   const source = payload?.data || payload;
   const token = source?.token || source?.accessToken || source?.access_token;
@@ -123,5 +129,30 @@ export const authApi = {
       method: 'POST',
       body: { correo },
     });
+  },
+};
+
+export const productApi = {
+  list(filters = {}) {
+    const params = new URLSearchParams();
+    if (filters.q) params.set('q', filters.q.trim());
+    if (filters.categoria) params.set('categoria', filters.categoria);
+    if (filters.marca) params.set('marca', filters.marca);
+    const query = params.toString();
+    return request(`/api/products${query ? `?${query}` : ''}`);
+  },
+
+  categories() {
+    return request('/api/products/categories');
+  },
+
+  detail(id) {
+    return request(`/api/products/${encodeURIComponent(id)}`);
+  },
+
+  recommendations(id, limit = 4) {
+    return request(
+      `/api/products/${encodeURIComponent(id)}/recommendations?limit=${encodeURIComponent(limit)}`,
+    );
   },
 };
