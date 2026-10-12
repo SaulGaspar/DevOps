@@ -80,8 +80,8 @@ jobs:
           cache: npm
       - name: Instalar dependencias reproducibles
         run: npm ci
-      - name: Bloquear vulnerabilidades altas o críticas
-                run: npm audit --audit-level=critical
+      - name: Bloquear vulnerabilidades criticas
+        run: npm audit --audit-level=critical
 
   codeql:
     name: 4. Análisis de seguridad CodeQL
