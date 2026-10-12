@@ -14,6 +14,7 @@ export default function RootLayout() {
           name="recuperar-contrasena"
           options={{ title: 'Recuperar contraseña' }}
         />
+        <Stack.Screen name="producto/[id]" options={{ title: 'Detalle del producto' }} />
       </Stack>
     </AuthProvider>
   );
