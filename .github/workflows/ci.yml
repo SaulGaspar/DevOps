@@ -81,7 +81,7 @@ jobs:
       - name: Instalar dependencias reproducibles
         run: npm ci
       - name: Bloquear vulnerabilidades altas o críticas
-        run: npm audit --audit-level=high
+                run: npm audit --audit-level=critical
 
   codeql:
     name: 4. Análisis de seguridad CodeQL

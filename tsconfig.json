@@ -5,5 +5,10 @@
     "checkJs": false,
     "noEmit": true
   },
-  "include": ["src/**/*.js", "src/**/*.jsx", "expo-env.d.ts"]
+  "include": [
+    "src/**/*.js",
+    "src/**/*.jsx",
+    "expo-env.d.ts",
+    ".expo/types/**/*.ts"
+  ]
 }
