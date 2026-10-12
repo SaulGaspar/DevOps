@@ -52,7 +52,8 @@ export default function ProductDetailScreen() {
     }
     Alert.alert(
       'Producto preparado',
-      `${product.nombre}${selectedSize ? ` · Talla ${selectedSize}` : ''}${selectedColor ? ` · ${selectedColor}` : ''}. Selección confirmada.`,      [{ text: 'Seguir viendo', style: 'cancel' }, { text: 'Ir al carrito', onPress: () => router.push('/carrito') }],
+      `${product.nombre}${selectedSize ? ` · Talla ${selectedSize}` : ''}${selectedColor ? ` · ${selectedColor}` : ''}. Selección confirmada.`,
+      [{ text: 'Seguir viendo', style: 'cancel' }, { text: 'Ir al carrito', onPress: () => router.push('/carrito') }],
     );
   }
 
