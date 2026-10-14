@@ -1,12 +1,18 @@
 // Integración cliente HTTP + serialización + respuestas; fetch simulado.
 // NO equivale a una prueba extremo a extremo con un backend desplegado.
-import { authApi, productApi, ApiError } from '../src/services/api';
 import { apiCases } from './fixtures/scenarios';
 
+let authApi;
+let productApi;
+let ApiError;
 const originalFetch = global.fetch;
 const originalApiUrl = process.env.EXPO_PUBLIC_API_URL;
 
-beforeAll(() => { process.env.EXPO_PUBLIC_API_URL = 'https://qa.example.com'; });
+beforeAll(() => {
+  process.env.EXPO_PUBLIC_API_URL = 'https://qa.example.com';
+  jest.resetModules();
+  ({ authApi, productApi, ApiError } = require('../src/services/api'));
+});
 afterAll(() => {
   global.fetch = originalFetch;
   if (originalApiUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
