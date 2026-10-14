@@ -45,6 +45,9 @@
     "collectCoverageFrom": [
       "src/**/*.{js,jsx}",
       "!src/app/**"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.test.js"
     ]
   },
   "expo": {
