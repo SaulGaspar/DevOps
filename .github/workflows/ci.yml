@@ -1,3 +1,4 @@
+
 name: CI/CD SportLike
 
 on:
@@ -94,14 +95,10 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  security:
-    name: 4. Seguridad de dependencias y CodeQL
+  dependency-security:
+    name: 4. Seguridad de dependencias
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -111,14 +108,33 @@ jobs:
       - run: npm ci
       - name: Auditoría de dependencias críticas
         run: npm audit --audit-level=critical
-      - uses: github/codeql-action/init@v3
+
+  codeql:
+    name: 5. Análisis de seguridad CodeQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+      - name: Inicializar CodeQL
+        uses: github/codeql-action/init@v3
         with:
           languages: javascript-typescript
-      - uses: github/codeql-action/analyze@v3
+      - name: Analizar código
+        uses: github/codeql-action/analyze@v3
 
   regression:
-    name: 5. Regresión completa y cobertura
-    needs: [quality, unit-tests, integration-tests, security]
+    name: 6. Regresión completa y cobertura
+    needs:
+      - quality
+      - unit-tests
+      - integration-tests
+      - dependency-security
+      - codeql
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -149,7 +165,7 @@ jobs:
           retention-days: 14
 
   android-export:
-    name: 6. Exportación Expo (no APK)
+    name: 7. Exportación Expo (no APK)
     needs: [regression]
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -171,9 +187,16 @@ jobs:
           retention-days: 14
 
   verdict:
-    name: 7. Veredicto final del pipeline
+    name: 8. Veredicto final del pipeline
     if: always()
-    needs: [quality, unit-tests, integration-tests, security, regression, android-export]
+    needs:
+      - quality
+      - unit-tests
+      - integration-tests
+      - dependency-security
+      - codeql
+      - regression
+      - android-export
     runs-on: ubuntu-latest
     steps:
       - name: Evaluar todas las etapas obligatorias
@@ -188,15 +211,17 @@ jobs:
           const report = [
             '# Veredicto CI/CD SportLike',
             '',
-            passed ? '## APROBADO ✅: las etapas obligatorias terminaron correctamente.' :
-              '## RECHAZADO ❌: una o más etapas fallaron, se cancelaron o se omitieron.',
+            passed ? '## APROBADO: las etapas obligatorias terminaron correctamente.' :
+              '## RECHAZADO: una o más etapas fallaron, se cancelaron o se omitieron.',
             '',
-            '| Etapa | Resultado |', '|---|---|',
+            '| Etapa | Resultado |',
+            '|---|---|',
             ...rows.map(([name, status]) => '| ' + name + ' | ' + status + ' |'),
             '',
             'La exportación posterior solo se habilita si las pruebas previas aprueban.',
             'Los resultados detallados y casos están en los artefactos de cada job.'
           ].join('\n');
+
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, report + '\n');
           console.log(report);
           if (!passed) process.exitCode = 1;
