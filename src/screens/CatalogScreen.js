@@ -7,6 +7,7 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { router } from 'expo-router';
@@ -14,6 +15,7 @@ import { router } from 'expo-router';
 import ProductCard from '../components/ProductCard';
 import { productApi } from '../services/api';
 import { normalizeProduct } from '../utils/productCatalog';
+import { searchCatalog } from '../utils/searchCatalog';
 import {
   PAGE_SIZE,
   getPagedItems,
@@ -24,6 +26,7 @@ export default function CatalogScreen() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -69,15 +72,15 @@ export default function CatalogScreen() {
   }, [loadCatalog]);
 
   // Filtrar productos por categoría
-  const visibleProducts = useMemo(
-    () =>
-      selectedCategory
-        ? products.filter(
-            (product) => product.categoria === selectedCategory
-          )
-        : products,
-    [products, selectedCategory]
-  );
+  const visibleProducts = useMemo(() => {
+  const categoryProducts = selectedCategory
+    ? products.filter(
+        (product) => product.categoria === selectedCategory
+      )
+    : products;
+
+  return searchCatalog(categoryProducts, searchQuery);
+  }, [products, selectedCategory, searchQuery]);
 
   // HU3: Paginación progresiva del catálogo
   const pagedProducts = useMemo(
@@ -144,6 +147,22 @@ export default function CatalogScreen() {
             </Text>
           </View>
 
+
+          <View style={styles.searchContainer}>
+  <TextInput
+    testID="catalog-search-input"
+    style={styles.searchInput}
+    placeholder="Buscar productos por nombre o marca..."
+    placeholderTextColor="#718096"
+    value={searchQuery}
+    onChangeText={(text) => {
+      setSearchQuery(text);
+      setPage(1);
+    }}
+    autoCorrect={false}
+    />
+  </View>
+
           <FlatList
             contentContainerStyle={styles.categories}
             data={['', ...categories]}
@@ -193,17 +212,21 @@ export default function CatalogScreen() {
           ) : null}
         </View>
       }
+  ListEmptyComponent={
+  <View style={styles.empty}>
+    <Text style={styles.errorTitle}>
+      {searchQuery.trim()
+        ? 'No encontramos productos'
+        : 'No hay productos'}
+    </Text>
 
-      ListEmptyComponent={
-        <View style={styles.empty}>
-          <Text style={styles.errorTitle}>
-            No hay productos
-          </Text>
-          <Text style={styles.centerText}>
-            Prueba con otra categoría.
-          </Text>
-        </View>
-      }
+    <Text style={styles.centerText}>
+      {searchQuery.trim()
+        ? 'Prueba con otro nombre o marca.'
+        : 'Prueba con otra categoría.'}
+    </Text>
+  </View>
+  }
 
       columnWrapperStyle={styles.row}
       contentContainerStyle={styles.list}
@@ -369,5 +392,20 @@ const styles = StyleSheet.create({
   },
   footerLoader: {
     paddingVertical: 18,
+  },
+  searchContainer: {
+  backgroundColor: '#F5F7FA',
+  paddingHorizontal: 18,
+  paddingTop: 16,
+  },
+searchInput: {
+  backgroundColor: '#FFFFFF',
+  borderColor: '#DCE3EC',
+  borderRadius: 12,
+  borderWidth: 1,
+  color: '#0B1F3A',
+  fontSize: 14,
+  paddingHorizontal: 14,
+  paddingVertical: 12,
   },
 });
