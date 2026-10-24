@@ -9,13 +9,13 @@ Las pruebas Jest de integración verifican el contrato del cliente HTTP contra `
 - No subir claves, cuentas reales o tokens auténticos. Para entornos externos usar secretos y datos aislados.
 
 ## Matriz de ejecución por evento
-| Evento | Paralelo: calidad / unitarias / integración / seguridad | Secuencia | Resultado |
+| Evento | Paralelo: calidad / PU / PI / dependencias / CodeQL / seguridad funcional | Secuencia | Resultado |
 |---|---|---|---|
 | push feature/**, develop, main | Sí | regresión con cobertura → exportación | Aprobado o rechazado |
 | pull_request hacia develop o main | Sí | regresión con cobertura → exportación | Aprobado o rechazado |
 | workflow_dispatch | Sí | regresión con cobertura → exportación | Aprobado o rechazado |
 
-Los cuatro jobs iniciales se ejecutan en paralelo. Los jobs dependientes se omiten si alguno falla. El job **Veredicto del pipeline** se ejecuta siempre y muestra el resultado final de la cadena. Las ejecuciones canceladas no son aprobaciones.
+Los seis jobs iniciales se ejecutan en paralelo. La seguridad funcional ejecuta casos `SEG-HU1` a `SEG-HU5` con datos sintéticos. Después, en secuencia, se ejecutan regresión y exportación únicamente si todas las compuertas previas aprobaron. El job **Veredicto del pipeline** se ejecuta siempre y muestra el resultado final de la cadena. Las ejecuciones canceladas, omitidas o sin reporte no son aprobaciones.
 
 ## Criterios
 1. Cada job obligatorio termina en éxito; no se aceptan fallos ni ausencia de reportes.
@@ -23,9 +23,10 @@ Los cuatro jobs iniciales se ejecutan en paralelo. Los jobs dependientes se omit
 3. Regresión ejecuta toda la suite con cobertura, no únicamente los tests nuevos.
 4. La exportación se publica solo cuando las validaciones previas aprobaron.
 5. Si falla alguna etapa: job rojo, mensaje de RECHAZADO en resumen, sin exportación de entrega; corregir y volver a ejecutar.
+6. La auditoría de dependencias publica todas las severidades. La política vigente bloquea vulnerabilidades críticas y deja las demás visibles como deuda técnica; no se presentan como inexistentes.
 
 ## Dónde consultar
-Ir a **Actions → CI/CD SportLike → ejecución → Summary** para el veredicto; abrir los jobs para diagnósticos; descargar los artefactos `qa-unitarias-*`, `qa-integracion-*`, `qa-regresion-*` y `cobertura-*`. Añadir el enlace a cada historia/tarea de GitHub Projects junto con fecha, rama, commit, resultado, números de casos, cobertura y corrección si falla.
+Ir a **Actions → CI/CD SportLike → ejecución → Summary** para el veredicto; abrir los jobs para diagnósticos; descargar los artefactos `qa-unitarias-*`, `qa-integracion-*`, `qa-dependencias-*`, `qa-seguridad-funcional-*` y `qa-regresion-*`. Añadir el enlace a cada historia/tarea de GitHub Projects junto con fecha, rama, commit, resultado, números de casos, cobertura y corrección si falla.
 
 ## Registro estandarizado por historia de usuario
 - Historia HU y criterios de aceptación.

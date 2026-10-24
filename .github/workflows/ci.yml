@@ -106,8 +106,20 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
-      - name: Auditoría de dependencias críticas
-        run: npm audit --audit-level=critical
+      - name: Ejecutar auditoría y conservar todos los hallazgos
+        run: |
+          mkdir -p qa-results
+          npm audit --json > qa-results/dependencias.json || true
+      - name: Generar veredicto de dependencias
+        run: node scripts/dependency-audit-summary.js qa-results/dependencias.json qa-results/dependencias.md
+      - name: Conservar evidencia de dependencias
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-dependencias-${{ github.run_number }}
+          path: qa-results/
+          if-no-files-found: error
+          retention-days: 14
 
   codeql:
     name: 5. Análisis de seguridad CodeQL
@@ -127,14 +139,44 @@ jobs:
       - name: Analizar código
         uses: github/codeql-action/analyze@v3
 
+  security-functional:
+    name: 6. Seguridad funcional por HU
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Ejecutar casos de seguridad con datos sintéticos
+        id: jest
+        continue-on-error: true
+        run: |
+          mkdir -p qa-results
+          npm run test:security -- --json --outputFile=qa-results/seguridad-funcional.json
+      - name: Generar veredicto de seguridad
+        if: always() && steps.jest.outcome != 'skipped'
+        run: node scripts/qa-summary.js qa-results/seguridad-funcional.json qa-results/seguridad-funcional.md
+      - name: Conservar evidencia aunque existan fallos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-seguridad-funcional-${{ github.run_number }}
+          path: qa-results/
+          if-no-files-found: warn
+          retention-days: 14
+
   regression:
-    name: 6. Regresión completa y cobertura
+    name: 7. Regresión completa y cobertura
     needs:
       - quality
       - unit-tests
       - integration-tests
       - dependency-security
       - codeql
+      - security-functional
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -165,7 +207,7 @@ jobs:
           retention-days: 14
 
   android-export:
-    name: 7. Exportación Expo (no APK)
+    name: 8. Exportación Expo (no APK)
     needs: [regression]
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -187,7 +229,7 @@ jobs:
           retention-days: 14
 
   verdict:
-    name: 8. Veredicto final del pipeline
+    name: 9. Veredicto final del pipeline
     if: always()
     needs:
       - quality
@@ -195,6 +237,7 @@ jobs:
       - integration-tests
       - dependency-security
       - codeql
+      - security-functional
       - regression
       - android-export
     runs-on: ubuntu-latest
