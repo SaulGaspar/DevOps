@@ -1,0 +1,59 @@
+{
+  "fecha": "2026-10-25T04:07:36.949Z",
+  "entorno": "Servidor HTTP local simulado",
+  "destino": "http://127.0.0.1:3100/productos",
+  "fases": [
+    {
+      "fase": "Inicial",
+      "solicitudes": 30,
+      "concurrencia": 2,
+      "exitosas": 30,
+      "fallidas": 0,
+      "errorPct": 0,
+      "promedioMs": 4.32,
+      "p95Ms": 18.52,
+      "maxMs": 55.89,
+      "solicitudesPorSegundo": 350.82,
+      "duracionSegundos": 0.09
+    },
+    {
+      "fase": "Media",
+      "solicitudes": 100,
+      "concurrencia": 10,
+      "exitosas": 100,
+      "fallidas": 0,
+      "errorPct": 0,
+      "promedioMs": 7.44,
+      "p95Ms": 14.93,
+      "maxMs": 20.77,
+      "solicitudesPorSegundo": 1301.03,
+      "duracionSegundos": 0.08
+    },
+    {
+      "fase": "Elevada",
+      "solicitudes": 300,
+      "concurrencia": 30,
+      "exitosas": 300,
+      "fallidas": 0,
+      "errorPct": 0,
+      "promedioMs": 18.18,
+      "p95Ms": 32.33,
+      "maxMs": 34.34,
+      "solicitudesPorSegundo": 1591.22,
+      "duracionSegundos": 0.19
+    },
+    {
+      "fase": "Recuperacion",
+      "solicitudes": 30,
+      "concurrencia": 2,
+      "exitosas": 30,
+      "fallidas": 0,
+      "errorPct": 0,
+      "promedioMs": 1.04,
+      "p95Ms": 3.22,
+      "maxMs": 3.42,
+      "solicitudesPorSegundo": 1881.64,
+      "duracionSegundos": 0.02
+    }
+  ]
+}

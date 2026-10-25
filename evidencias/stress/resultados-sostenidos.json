@@ -1,0 +1,64 @@
+{
+  "fecha": "2026-10-25T04:11:22.545Z",
+  "entorno": "Servidor HTTP local simulado",
+  "destino": "http://127.0.0.1:3100/productos",
+  "intervaloEntreSolicitudesMs": 100,
+  "fases": [
+    {
+      "fase": "Inicial",
+      "duracionProgramadaSegundos": 10,
+      "duracionRealSegundos": 10,
+      "concurrencia": 2,
+      "solicitudes": 182,
+      "exitosas": 182,
+      "fallidas": 0,
+      "errorPct": 0,
+      "promedioMs": 2.31,
+      "p95Ms": 2.64,
+      "maxMs": 52.91,
+      "solicitudesPorSegundo": 18.19
+    },
+    {
+      "fase": "Media",
+      "duracionProgramadaSegundos": 15,
+      "duracionRealSegundos": 15,
+      "concurrencia": 10,
+      "solicitudes": 1370,
+      "exitosas": 1370,
+      "fallidas": 0,
+      "errorPct": 0,
+      "promedioMs": 2.73,
+      "p95Ms": 4.32,
+      "maxMs": 8.36,
+      "solicitudesPorSegundo": 91.32
+    },
+    {
+      "fase": "Elevada",
+      "duracionProgramadaSegundos": 20,
+      "duracionRealSegundos": 20,
+      "concurrencia": 30,
+      "solicitudes": 5490,
+      "exitosas": 5490,
+      "fallidas": 0,
+      "errorPct": 0,
+      "promedioMs": 4.59,
+      "p95Ms": 7.5,
+      "maxMs": 17.42,
+      "solicitudesPorSegundo": 274.46
+    },
+    {
+      "fase": "Recuperacion",
+      "duracionProgramadaSegundos": 10,
+      "duracionRealSegundos": 10.01,
+      "concurrencia": 2,
+      "solicitudes": 184,
+      "exitosas": 184,
+      "fallidas": 0,
+      "errorPct": 0,
+      "promedioMs": 1.39,
+      "p95Ms": 1.7,
+      "maxMs": 2.96,
+      "solicitudesPorSegundo": 18.39
+    }
+  ]
+}
