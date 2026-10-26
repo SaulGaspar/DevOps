@@ -127,14 +127,50 @@ jobs:
       - name: Analizar código
         uses: github/codeql-action/analyze@v3
 
+  acceptance-tests:
+    name: 6. Pruebas de aceptación automatizadas
+    needs:
+      - quality
+      - unit-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+
+      - name: Ejecutar escenarios PA-01, PA-02 y PA-03
+        id: jest
+        continue-on-error: true
+        run: |
+          mkdir -p qa-results
+          npm test -- --runTestsByPath __tests__/CartAcceptance.test.js __tests__/CatalogAcceptance.test.js --json --outputFile=qa-results/aceptacion.json
+
+      - name: Generar resumen y validar resultados
+        if: always() && steps.jest.outcome != 'skipped'
+        run: node scripts/qa-summary.js qa-results/aceptacion.json qa-results/aceptacion.md
+
+      - name: Guardar evidencia de aceptación
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-aceptacion-${{ github.run_number }}
+          path: qa-results/
+          if-no-files-found: error
+          retention-days: 14
+
   regression:
-    name: 6. Regresión completa y cobertura
+    name: 7. Regresión completa y cobertura
     needs:
       - quality
       - unit-tests
       - integration-tests
       - dependency-security
       - codeql
+      - acceptance-tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -165,7 +201,7 @@ jobs:
           retention-days: 14
 
   android-export:
-    name: 7. Exportación Expo (no APK)
+    name: 8. Exportación Expo (no APK)
     needs: [regression]
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -187,7 +223,7 @@ jobs:
           retention-days: 14
 
   verdict:
-    name: 8. Veredicto final del pipeline
+    name: 9. Veredicto final del pipeline
     if: always()
     needs:
       - quality
@@ -195,6 +231,7 @@ jobs:
       - integration-tests
       - dependency-security
       - codeql
+      - acceptance-tests
       - regression
       - android-export
     runs-on: ubuntu-latest
