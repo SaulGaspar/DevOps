@@ -1,4 +1,7 @@
 # SportLike Mobile
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/SaulGaspar/DevOps)
+
+**Documentación técnica del proyecto:** [SportLike en DeepWiki](https://deepwiki.com/SaulGaspar/DevOps)
 
 Aplicación móvil de la tienda deportiva SportLike, desarrollada con React Native y Expo.
 La aplicación adapta las funciones de la plataforma web para dispositivos Android y iOS.
