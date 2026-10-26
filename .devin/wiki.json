@@ -1,0 +1,233 @@
+
+{
+  "repo_notes": [
+    {
+      "content": "Documentar SportLike Mobile tomando como fuente el codigo vigente de la rama main del repositorio SaulGaspar/DevOps. La aplicacion utiliza React Native, Expo y Expo Router. Incluir las funcionalidades de autenticacion, catalogo, busqueda, filtros avanzados, detalle de productos, carga progresiva de imagenes y carrito. El pipeline CI/CD vigente esta definido en .github/workflows/ci.yml y contiene 10 jobs, no cinco. Documentar las pruebas de aceptacion PA-01, PA-02 y PA-03, las 14 pruebas de seguridad funcional y la regresion automatizada. Distinguir claramente las pruebas con respuestas simuladas de las pruebas realizadas contra servicios reales. La exportacion Expo genera recursos Android en dist/, pero no es un APK ni un despliegue a produccion. Consultar los archivos reales y citar las rutas correspondientes. No utilizar nombres de jobs antiguos como functional-tests o android-delivery para describir el pipeline vigente."
+    }
+  ],
+  "pages": [
+    {
+      "title": "Overview",
+      "purpose": "Presentar SportLike Mobile, sus objetivos, arquitectura, tecnologias, funcionalidades actuales, estructura del repositorio y enlaces a las secciones tecnicas.",
+      "page_notes": [
+        {
+          "content": "Explicar que SportLike Mobile es una aplicacion de comercio electronico para articulos deportivos desarrollada con React Native y Expo. Identificar las funcionalidades presentes en el codigo: autenticacion, catalogo, busqueda, filtros, detalle de productos y carrito. Documentar a partir de README.md, package.json y src/."
+        }
+      ]
+    },
+    {
+      "title": "Getting Started",
+      "purpose": "Explicar la instalacion del proyecto, requisitos, configuracion del entorno, variables EXPO_PUBLIC_API_URL, comandos npm y ejecucion con Expo.",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": "Consultar README.md, package.json, .env.example y app.json. Documentar npm ci, npm start, npm test, npm run lint, npm run typecheck, npm run test:security y npm run export:android segun los scripts realmente disponibles. Describir el uso de Expo Go cuando sea aplicable y diferenciar el entorno local del pipeline de GitHub Actions."
+        }
+      ]
+    },
+    {
+      "title": "Project Configuration",
+      "purpose": "Documentar la configuracion de Expo, TypeScript, ESLint, variables de entorno, recursos visuales, dependencias y configuraciones del repositorio.",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": "Analizar app.json, package.json, package-lock.json, tsconfig.json, eslint.config.js, .gitignore y .env.example. Explicar las configuraciones verificables y no inventar servicios externos ni configuraciones no presentes en el repositorio."
+        }
+      ]
+    },
+    {
+      "title": "Navigation & App Shell",
+      "purpose": "Explicar la arquitectura de navegacion basada en Expo Router, los layouts, proveedores de contexto y registro de rutas.",
+      "page_notes": [
+        {
+          "content": "Utilizar src/app/_layout.js y src/app/(tabs)/_layout.js como referencias principales. Explicar la organizacion de rutas y la integracion de AuthProvider y CartProvider."
+        }
+      ]
+    },
+    {
+      "title": "Root Layout and Providers",
+      "purpose": "Documentar la composicion del RootLayout, los proveedores AuthProvider y CartProvider, StatusBar y navegacion principal.",
+      "parent": "Navigation & App Shell",
+      "page_notes": [
+        {
+          "content": "Analizar src/app/_layout.js, src/context/AuthContext.js y src/context/CartContext.js. Explicar que datos comparte cada proveedor y su relacion con las pantallas."
+        }
+      ]
+    },
+    {
+      "title": "Tab Navigation and Route Files",
+      "purpose": "Explicar las pestanas de navegacion y los archivos de rutas del catalogo, busqueda, carrito, perfil, inicio de sesion, registro, recuperacion de contrasena y detalle de producto.",
+      "parent": "Navigation & App Shell",
+      "page_notes": [
+        {
+          "content": "Consultar los archivos de src/app/(tabs)/ y las rutas de src/app/. Describir los componentes a los que conduce cada ruta y la diferencia entre archivos de navegacion y pantallas funcionales."
+        }
+      ]
+    },
+    {
+      "title": "Screens and UI Components",
+      "purpose": "Presentar las pantallas principales y los componentes reutilizables de SportLike Mobile, incluyendo interacciones de usuario y flujos entre pantallas.",
+      "page_notes": [
+        {
+          "content": "Analizar src/screens/ y src/components/. Explicar CatalogScreen, ProductDetailScreen, CartScreen, LoginScreen y los componentes ProductCard, ProgressiveImage y FilterBottomSheet."
+        }
+      ]
+    },
+    {
+      "title": "Catalog and Search",
+      "purpose": "Documentar CatalogScreen, busqueda por nombre y marca, filtros avanzados, paginacion, carga de productos y actualizacion de resultados.",
+      "parent": "Screens and UI Components",
+      "page_notes": [
+        {
+          "content": "Analizar src/screens/CatalogScreen.js, src/components/FilterBottomSheet.js, src/utils/searchCatalog.js y src/utils/filterCatalog.js. Explicar filtros por categoria, marca, precio y talla cuando correspondan a la implementacion. Documentar la combinacion de busqueda y filtros, validacion de rangos de precios, reinicio de paginacion y resultados vacios."
+        }
+      ]
+    },
+    {
+      "title": "Product Detail Screen",
+      "purpose": "Explicar la pantalla de detalle de producto, imagenes, variantes, existencias, seleccion de talla y color y agregado al carrito.",
+      "parent": "Screens and UI Components",
+      "page_notes": [
+        {
+          "content": "Consultar src/screens/ProductDetailScreen.js, src/components/ProductCard.js y los modulos relacionados. Explicar las validaciones realmente implementadas al seleccionar variantes y agregar productos al carrito."
+        }
+      ]
+    },
+    {
+      "title": "Progressive Image Loading",
+      "purpose": "Documentar el componente ProgressiveImage, la carga progresiva de imagenes y la paginacion del catalogo.",
+      "parent": "Screens and UI Components",
+      "page_notes": [
+        {
+          "content": "Consultar src/components/ProgressiveImage.js, src/utils/progressiveCatalog.js y las pruebas ProgressiveImage.test.js y progressiveCatalog.test.js. Explicar el funcionamiento de la carga, los estados visuales y los limites de paginacion."
+        }
+      ]
+    },
+    {
+      "title": "Authentication",
+      "purpose": "Explicar los flujos de inicio de sesion, registro, recuperacion de contrasena, validacion de credenciales y estado de autenticacion.",
+      "page_notes": [
+        {
+          "content": "Documentar AuthContext, authValidation y las pantallas de autenticacion. Diferenciar las validaciones locales de las respuestas HTTP simuladas utilizadas en las pruebas automatizadas."
+        }
+      ]
+    },
+    {
+      "title": "Login, Register, Password Recovery Screens",
+      "purpose": "Documentar LoginScreen, RegisterScreen y ForgotPasswordScreen, sus formularios, validaciones y comunicacion con los servicios.",
+      "parent": "Authentication",
+      "page_notes": [
+        {
+          "content": "Analizar src/screens/LoginScreen.js, src/screens/RegisterScreen.js y src/screens/ForgotPasswordScreen.js. Describir las interacciones verificables, los mensajes de error y las operaciones de envio de formularios."
+        }
+      ]
+    },
+    {
+      "title": "AuthContext and Profile",
+      "purpose": "Explicar la gestion de sesion, almacenamiento seguro, inicio y cierre de sesion y comportamiento de la pantalla de perfil.",
+      "parent": "Authentication",
+      "page_notes": [
+        {
+          "content": "Utilizar src/context/AuthContext.js y src/screens/ProfileScreen.js. Documentar el uso de almacenamiento seguro y los limites de lo que se comprueba automaticamente."
+        }
+      ]
+    },
+    {
+      "title": "Input Validation Utilities",
+      "purpose": "Documentar las funciones de validacion de autenticacion, entradas ausentes, formatos invalidos, tipos incorrectos y limites de longitud.",
+      "parent": "Authentication",
+      "page_notes": [
+        {
+          "content": "Analizar src/utils/authValidation.js, __tests__/authValidation.test.js y __tests__/securityFunctional.test.js. Explicar normalizacion y validacion de campos, rechazo de entradas incorrectas y proteccion ante datos manipulados."
+        }
+      ]
+    },
+    {
+      "title": "State, Data and Services",
+      "purpose": "Explicar la gestion de datos, contextos globales, estado del carrito, servicios HTTP y utilidades del catalogo.",
+      "page_notes": [
+        {
+          "content": "Presentar la separacion entre componentes visuales, pantallas, contextos, servicios y utilidades. Consultar src/context/, src/services/ y src/utils/."
+        }
+      ]
+    },
+    {
+      "title": "Cart State Management",
+      "purpose": "Explicar CartProvider, useCart, cartKey, addCartItem, changeCartQuantity, eliminacion de productos, subtotal, cantidades y validacion de existencias.",
+      "parent": "State, Data and Services",
+      "page_notes": [
+        {
+          "content": "Analizar src/context/CartContext.js, src/utils/cart.js y src/screens/CartScreen.js. Documentar el control de stock, productos malformados, cantidades incorrectas y calculo del subtotal. Incluir las pruebas cart.test.js, CartScreen.test.js y CartAcceptance.test.js."
+        }
+      ]
+    },
+    {
+      "title": "API Service Layer",
+      "purpose": "Documentar la configuracion HTTP de SportLike, el uso de EXPO_PUBLIC_API_URL, authApi, productApi, serializacion de solicitudes y tratamiento de errores.",
+      "parent": "State, Data and Services",
+      "page_notes": [
+        {
+          "content": "Consultar src/services/api.js y __tests__/apiIntegration.test.js. Aclarar que las pruebas de integracion automatizadas emplean fetch simulado y validan contratos HTTP, no una comunicacion completa con un backend productivo."
+        }
+      ]
+    },
+    {
+      "title": "Product Catalog Utilities",
+      "purpose": "Documentar normalizacion de productos, formato de precios, busqueda, filtros, paginacion y validaciones de datos.",
+      "parent": "State, Data and Services",
+      "page_notes": [
+        {
+          "content": "Consultar src/utils/productCatalog.js, src/utils/filterCatalog.js, src/utils/searchCatalog.js y src/utils/progressiveCatalog.js. Documentar los casos limite y las validaciones contra precios invalidos, textos excesivos y datos malformados."
+        }
+      ]
+    },
+    {
+      "title": "DevOps: Testing, CI/CD and Contribution",
+      "purpose": "Presentar las practicas DevOps vigentes: pruebas automatizadas, integracion continua, seguridad funcional, auditorias, cobertura, reportes y procesos de contribucion.",
+      "page_notes": [
+        {
+          "content": "El pipeline actual tiene 10 etapas. Analizar .github/workflows/ci.yml y los documentos docs/QA_PIPELINE.md, docs/QA_MATRIZ_SEGURIDAD_SPRINTS.md, docs/QA_ACTIVIDAD4_ESFUERZO.md y docs/QA_ACTIVIDAD4_SLA_MONITOREO.md. Diferenciar pruebas automatizadas, pruebas de esfuerzo contra servidor local simulado y objetivos de monitoreo no implementados."
+        }
+      ]
+    },
+    {
+      "title": "Test Suite",
+      "purpose": "Documentar las suites actuales de Jest y jest-expo, pruebas de componentes, catalogo, busqueda, filtros, carrito, autenticacion, aceptacion, integracion HTTP simulada, seguridad funcional y regresion.",
+      "parent": "DevOps: Testing, CI/CD and Contribution",
+      "page_notes": [
+        {
+          "content": "Consultar package.json y __tests__/. Explicar las pruebas PA-01 de carrito, PA-02 de busqueda combinada con filtros y PA-03 de validacion de rango de precios. Incluir los 14 casos ejecutados en securityFunctional.test.js. Documentar tambien la evidencia de una ejecucion local con 127 pruebas aprobadas en 19 suites, identificandola como resultado historico y no como garantia de ejecuciones futuras. Explicar las herramientas Jest y React Native Testing Library y el uso de datos sinteticos."
+        }
+      ]
+    },
+    {
+      "title": "CI/CD Pipeline",
+      "purpose": "Documentar el pipeline vigente de GitHub Actions en .github/workflows/ci.yml con los 10 jobs: 1 quality, 2 unit-tests, 3 integration-tests, 4 dependency-security, 5 codeql, 6 acceptance-tests, 7 security-functional, 8 regression, 9 android-export y 10 verdict. Explicar sus dependencias, ejecucion paralela y secuencial, artefactos, cobertura y criterios de aprobacion o rechazo.",
+      "parent": "DevOps: Testing, CI/CD and Contribution",
+      "page_notes": [
+        {
+          "content": "IMPORTANTE: utilizar exclusivamente los nombres de los jobs presentes en .github/workflows/ci.yml de la rama main. No describir los cinco jobs antiguos functional-tests o android-delivery. Quality ejecuta ESLint, TypeScript y Expo Doctor. Unit-tests ejecuta pruebas unitarias y genera reportes. Integration-tests valida contratos HTTP mediante fetch simulado. Dependency-security utiliza npm audit. CodeQL analiza el codigo. Acceptance-tests ejecuta PA-01, PA-02 y PA-03 con un limite por prueba de 15000 ms. Security-functional ejecuta las pruebas de seguridad por HU. Regression depende de quality, unit-tests, integration-tests, dependency-security, codeql, acceptance-tests y security-functional; ejecuta la suite completa y cobertura. Android-export depende de regression y genera recursos Expo en dist/, no un APK. Verdict evalua todas las etapas obligatorias incluso cuando alguna falla. Documentar las evidencias JSON y Markdown, los artefactos con retencion de 14 dias y los disparadores workflow_dispatch, pull_request y push."
+        }
+      ]
+    },
+    {
+      "title": "Branching, PR Process and Dependencies",
+      "purpose": "Explicar el modelo de ramas main, develop y feature, procesos de Pull Request, aprobaciones, proteccion de ramas, dependencias y contribuciones.",
+      "parent": "DevOps: Testing, CI/CD and Contribution",
+      "page_notes": [
+        {
+          "content": "Consultar CONTRIBUTING.md, .github/pull_request_template.md y el historial del repositorio. Describir el flujo de cambios en ramas feature, integracion hacia develop y liberacion mediante Pull Request hacia main. No asumir que la aprobacion de un pipeline equivale automaticamente a una revision humana o despliegue productivo."
+        }
+      ]
+    },
+    {
+      "title": "Glossary",
+      "purpose": "Definir los terminos tecnicos y de dominio de SportLike, como talla, color, stock_total, precio, carrito, cartKey, React Native, Expo Router, API, CI/CD, pruebas de aceptacion, seguridad funcional, regresion, CodeQL, cobertura y artefactos.",
+      "page_notes": [
+        {
+          "content": "Incluir definiciones comprensibles para estudiantes y referencias a los archivos donde se utilizan los conceptos. Diferenciar exportacion Expo, APK, pruebas simuladas y pruebas de extremo a extremo."
+        }
+      ]
+    }
+  ]
+}
