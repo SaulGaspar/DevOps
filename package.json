@@ -36,6 +36,7 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "jest --runInBand",
+    "test:security": "jest --runInBand --runTestsByPath __tests__/securityFunctional.test.js",
     "test:coverage": "jest --runInBand --coverage",
     "export:android": "expo export --platform android --output-dir dist",
     "validate": "npm run lint && npm run typecheck && npm test && npx expo-doctor && npm run export:android"
