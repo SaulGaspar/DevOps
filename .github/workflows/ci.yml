@@ -1,3 +1,4 @@
+
 name: CI/CD SportLike
 
 on:
@@ -5,88 +6,113 @@ on:
   pull_request:
     branches: [develop, main]
   push:
-    branches:
-      - develop
-      - main
-      - 'feature/**'
+    branches: [develop, main, 'feature/**']
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-cd-${{ github.workflow }}-${{ github.ref }}
+  group: qa-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: 22.13.1
+  NODE_VERSION: '22.13.1'
 
 jobs:
   quality:
-    name: 1. Calidad de código
+    name: 1. Análisis estático y configuración
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
-      - name: Descargar código
-        uses: actions/checkout@v4
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - name: Instalar dependencias reproducibles
-        run: npm ci
-      - name: Revisar estilo
+      - run: npm ci
+      - name: ESLint
         run: npm run lint
-      - name: Comprobar tipos
+      - name: TypeScript
         run: npm run typecheck
-      - name: Validar configuración Expo
+      - name: Expo doctor
         run: npx expo-doctor
 
-  functional-tests:
-    name: 2. Pruebas funcionales
+  unit-tests:
+    name: 2. Pruebas unitarias y datos estandarizados
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
-      - name: Descargar código
-        uses: actions/checkout@v4
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - name: Instalar dependencias reproducibles
-        run: npm ci
-      - name: Ejecutar pruebas con cobertura
-        run: npm run test:coverage
-      - name: Conservar evidencia de cobertura
+      - run: npm ci
+      - name: Ejecutar pruebas unitarias y casos límite
+        id: jest
+        continue-on-error: true
+        run: |
+          mkdir -p qa-results
+          npm test -- --testPathIgnorePatterns=apiIntegration.test.js --json --outputFile=qa-results/unitarias.json
+      - name: Generar resumen verificable y fallar si corresponde
+        if: always() && steps.jest.outcome != 'skipped'
+        run: node scripts/qa-summary.js qa-results/unitarias.json qa-results/unitarias.md
+      - name: Guardar casos y resultados aunque fallen
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cobertura-pruebas-${{ github.run_number }}
-          path: coverage/
-          if-no-files-found: error
+          name: qa-unitarias-${{ github.run_number }}
+          path: qa-results/
+          if-no-files-found: warn
+          retention-days: 14
+
+  integration-tests:
+    name: 3. Integración HTTP con API simulada
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Ejecutar contrato HTTP
+        id: jest
+        continue-on-error: true
+        run: |
+          mkdir -p qa-results
+          npm test -- --runTestsByPath __tests__/apiIntegration.test.js --json --outputFile=qa-results/integracion.json
+      - name: Generar veredicto de integración
+        if: always() && steps.jest.outcome != 'skipped'
+        run: node scripts/qa-summary.js qa-results/integracion.json qa-results/integracion.md
+      - name: Conservar evidencia
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-integracion-${{ github.run_number }}
+          path: qa-results/
+          if-no-files-found: warn
           retention-days: 14
 
   dependency-security:
-    name: 3. Seguridad de dependencias
+    name: 4. Seguridad de dependencias
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
-      - name: Descargar código
-        uses: actions/checkout@v4
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - name: Instalar dependencias reproducibles
-        run: npm ci
-      - name: Bloquear vulnerabilidades criticas
+      - run: npm ci
+      - name: Auditoría de dependencias críticas
         run: npm audit --audit-level=critical
 
   codeql:
-    name: 4. Análisis de seguridad CodeQL
+    name: 5. Análisis de seguridad CodeQL
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     permissions:
       actions: read
       contents: read
@@ -101,27 +127,181 @@ jobs:
       - name: Analizar código
         uses: github/codeql-action/analyze@v3
 
-  android-delivery:
-    name: 5. Compilación y entrega Android
-    needs: [quality, functional-tests, dependency-security, codeql]
+  acceptance-tests:
+    name: 6. Pruebas de aceptación automatizadas
+    needs:
+      - quality
+      - unit-tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Descargar código
-        uses: actions/checkout@v4
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-      - name: Instalar dependencias reproducibles
-        run: npm ci
-      - name: Generar paquete exportable para Android
-        run: npm run export:android
-      - name: Publicar artefacto de entrega
+      - run: npm ci
+
+      - name: Ejecutar escenarios PA-01, PA-02 y PA-03
+        id: jest
+        continue-on-error: true
+        run: |
+          mkdir -p qa-results
+          npm test -- --runTestsByPath __tests__/CartAcceptance.test.js __tests__/CatalogAcceptance.test.js --testTimeout=15000 --json --outputFile=qa-results/aceptacion.json
+
+      - name: Generar resumen y validar resultados
+        if: always() && steps.jest.outcome != 'skipped'
+        run: node scripts/qa-summary.js qa-results/aceptacion.json qa-results/aceptacion.md
+
+      - name: Guardar evidencia de aceptación
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sportlike-android-${{ github.sha }}
+          name: qa-aceptacion-${{ github.run_number }}
+          path: qa-results/
+          if-no-files-found: error
+          retention-days: 14
+
+  security-functional:
+    name: 7. Seguridad funcional por HU
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+
+      - name: Ejecutar casos de seguridad con datos sintéticos
+        id: jest
+        continue-on-error: true
+        run: |
+          mkdir -p qa-results
+          npm run test:security -- --json --outputFile=qa-results/seguridad-funcional.json
+
+      - name: Generar veredicto de seguridad
+        if: always() && steps.jest.outcome != 'skipped'
+        run: node scripts/qa-summary.js qa-results/seguridad-funcional.json qa-results/seguridad-funcional.md
+
+      - name: Conservar evidencia aunque existan fallos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-seguridad-funcional-${{ github.run_number }}
+          path: qa-results/
+          if-no-files-found: warn
+          retention-days: 14
+
+  regression:
+    name: 8. Regresión completa y cobertura
+    needs:
+      - quality
+      - unit-tests
+      - integration-tests
+      - dependency-security
+      - codeql
+      - acceptance-tests
+      - security-functional
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+
+      - name: Suite completa de regresión y cobertura
+        id: jest
+        continue-on-error: true
+        run: |
+          mkdir -p qa-results
+          npm run test:coverage -- --json --outputFile=qa-results/regresion.json
+
+      - name: Validar y resumir regresión
+        if: always() && steps.jest.outcome != 'skipped'
+        run: node scripts/qa-summary.js qa-results/regresion.json qa-results/regresion.md
+
+      - name: Conservar reportes incluso en fallos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-regresion-${{ github.run_number }}
+          path: |
+            qa-results/
+            coverage/
+          if-no-files-found: warn
+          retention-days: 14
+
+  android-export:
+    name: 9. Exportación Expo (no APK)
+    needs: [regression]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+
+      - name: Exportar recursos Android
+        run: npm run export:android
+
+      - name: Publicar exportación aprobada
+        uses: actions/upload-artifact@v4
+        with:
+          name: sportlike-expo-export-${{ github.sha }}
           path: dist/
           if-no-files-found: error
           retention-days: 14
+
+  verdict:
+    name: 10. Veredicto final del pipeline
+    if: always()
+    needs:
+      - quality
+      - unit-tests
+      - integration-tests
+      - dependency-security
+      - codeql
+      - acceptance-tests
+      - security-functional
+      - regression
+      - android-export
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluar todas las etapas obligatorias
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const jobs = JSON.parse(process.env.RESULTS);
+          const rows = Object.entries(jobs).map(([name, obj]) => [name, obj.result]);
+          const passed = rows.every(([, value]) => value === 'success');
+
+          const report = [
+            '# Veredicto CI/CD SportLike',
+            '',
+            passed
+              ? '## APROBADO: todas las etapas obligatorias terminaron correctamente.'
+              : '## RECHAZADO: una o más etapas fallaron, se cancelaron o se omitieron.',
+            '',
+            '| Etapa | Resultado |',
+            '|---|---|',
+            ...rows.map(([name, status]) => '| ' + name + ' | ' + status + ' |'),
+            '',
+            'La exportación solo se habilita cuando aprueban las verificaciones previas.',
+            'Los resultados detallados se conservan en los artefactos de cada job.'
+          ].join('\n');
+
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, report + '\n');
+          console.log(report);
+
+          if (!passed) process.exitCode = 1;
+          NODE

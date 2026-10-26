@@ -7,13 +7,20 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { router } from 'expo-router';
 
 import ProductCard from '../components/ProductCard';
+import FilterBottomSheet, {
+  EMPTY_FILTERS,
+} from '../components/FilterBottomSheet';
+
 import { productApi } from '../services/api';
 import { normalizeProduct } from '../utils/productCatalog';
+import { searchCatalog } from '../utils/searchCatalog';
+import { filterCatalog } from '../utils/filterCatalog';
 import {
   PAGE_SIZE,
   getPagedItems,
@@ -21,15 +28,46 @@ import {
 } from '../utils/progressiveCatalog';
 
 export default function CatalogScreen() {
+  // Estado del catálogo
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState({ ...EMPTY_FILTERS });
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  // Estado de carga y paginación
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
 
-  // Obtener productos y categorías desde la API
+  // Obtener las marcas disponibles
+  const brands = useMemo(
+    () =>
+      [
+        ...new Set(
+          products.map((product) => product.marca).filter(Boolean)
+        ),
+      ].sort(),
+    [products]
+  );
+
+  // Obtener las tallas disponibles
+  const sizes = useMemo(
+    () =>
+      [
+        ...new Set(
+          products.flatMap((product) => product.tallas || [])
+        ),
+      ].sort((a, b) =>
+        String(a).localeCompare(String(b), 'es', {
+          numeric: true,
+        })
+      ),
+    [products]
+  );
+
+  // Cargar los productos y las categorías desde la API
   const loadCatalog = useCallback(async ({ refresh = false } = {}) => {
     if (refresh) {
       setRefreshing(true);
@@ -63,23 +101,25 @@ export default function CatalogScreen() {
     }
   }, []);
 
+  // Carga inicial del catálogo
   useEffect(() => {
     const timer = setTimeout(() => loadCatalog(), 0);
+
     return () => clearTimeout(timer);
   }, [loadCatalog]);
 
-  // Filtrar productos por categoría
-  const visibleProducts = useMemo(
-    () =>
-      selectedCategory
-        ? products.filter(
-            (product) => product.categoria === selectedCategory
-          )
-        : products,
-    [products, selectedCategory]
-  );
+  // HU4 #10 y #11:
+  // Combinar búsqueda por texto con filtros avanzados
+  const visibleProducts = useMemo(() => {
+    const searchedProducts = searchCatalog(
+      products,
+      searchQuery
+    );
 
-  // HU3: Paginación progresiva del catálogo
+    return filterCatalog(searchedProducts, filters);
+  }, [products, searchQuery, filters]);
+
+  // HU3: Paginación progresiva
   const pagedProducts = useMemo(
     () => getPagedItems(visibleProducts, page, PAGE_SIZE),
     [visibleProducts, page]
@@ -91,14 +131,35 @@ export default function CatalogScreen() {
     PAGE_SIZE
   );
 
-  // Cargar más productos al llegar al final
+  // Cargar más productos al desplazarse
   const loadMore = useCallback(() => {
     if (canLoadMore) {
       setPage((current) => current + 1);
     }
   }, [canLoadMore]);
 
-  // Todos los hooks están antes de los retornos condicionales
+  // Seleccionar una categoría desde los botones del catálogo
+  const selectCategory = (category) => {
+    setFilters((current) => ({
+      ...current,
+      categoria: category,
+    }));
+    setPage(1);
+  };
+
+  // Aplicar filtros desde el panel inferior
+  const applyFilters = (nextFilters) => {
+    setFilters(nextFilters);
+    setPage(1);
+    setFiltersOpen(false);
+  };
+
+  // Identificar si existen filtros avanzados activos
+  const hasActiveFilters = Object.values(filters).some(
+    (value) => String(value).trim() !== ''
+  );
+
+  // Pantalla de carga
   if (loading) {
     return (
       <View style={styles.center}>
@@ -110,167 +171,240 @@ export default function CatalogScreen() {
     );
   }
 
+  // Pantalla de error
   if (error && products.length === 0) {
     return (
       <View style={styles.center}>
         <Text style={styles.errorTitle}>
           No pudimos cargar el catálogo
         </Text>
-        <Text style={styles.centerText}>{error}</Text>
+
+        <Text style={styles.centerText}>
+          {error}
+        </Text>
+
         <Pressable
           onPress={() => loadCatalog()}
           style={styles.retryButton}
         >
-          <Text style={styles.retryText}>Reintentar</Text>
+          <Text style={styles.retryText}>
+            Reintentar
+          </Text>
         </Pressable>
       </View>
     );
   }
 
   return (
-    <FlatList
-      ListHeaderComponent={
-        <View>
-          <View style={styles.hero}>
-            <Text style={styles.eyebrow}>
-              SPORTLIKE MOBILE
-            </Text>
-            <Text style={styles.title}>
-              Encuentra tu próximo equipo
-            </Text>
-            <Text style={styles.subtitle}>
-              Explora productos disponibles y revisa cada
-              detalle antes de comprar.
-            </Text>
-          </View>
+    <View style={styles.screen}>
+      <FlatList
+        ListHeaderComponent={
+          <View>
+            {/* Encabezado */}
+            <View style={styles.hero}>
+              <Text style={styles.eyebrow}>
+                SPORTLIKE MOBILE
+              </Text>
 
-          <FlatList
-            contentContainerStyle={styles.categories}
-            data={['', ...categories]}
-            horizontal
-            keyExtractor={(item) => item || 'all'}
-            renderItem={({ item }) => {
-              const active = item === selectedCategory;
+              <Text style={styles.title}>
+                Encuentra tu próximo equipo
+              </Text>
 
-              return (
-                <Pressable
-                  onPress={() => {
-                    setSelectedCategory(item);
-                    setPage(1);
-                  }}
-                  style={[
-                    styles.chip,
-                    active && styles.chipActive,
-                  ]}
-                >
-                  <Text
+              <Text style={styles.subtitle}>
+                Explora productos disponibles y revisa cada
+                detalle antes de comprar.
+              </Text>
+            </View>
+
+            {/* HU4 #10: Barra de búsqueda */}
+            <View style={styles.searchContainer}>
+              <TextInput
+                testID="catalog-search-input"
+                style={styles.searchInput}
+                placeholder="Buscar productos por nombre o marca..."
+                placeholderTextColor="#718096"
+                value={searchQuery}
+                onChangeText={(text) => {
+                  setSearchQuery(text);
+                  setPage(1);
+                }}
+                autoCorrect={false}
+              />
+            </View>
+
+            {/* HU4 #11: Botón para abrir filtros */}
+            <Pressable
+              testID="catalog-open-filters"
+              style={styles.filterButton}
+              onPress={() => setFiltersOpen(true)}
+            >
+              <Text style={styles.filterButtonText}>
+                Filtros avanzados
+              </Text>
+            </Pressable>
+
+            {/* Categorías rápidas */}
+            <FlatList
+              contentContainerStyle={styles.categories}
+              data={['', ...categories]}
+              horizontal
+              keyExtractor={(item) => item || 'all'}
+              renderItem={({ item }) => {
+                const active = item === filters.categoria;
+
+                return (
+                  <Pressable
+                    onPress={() => selectCategory(item)}
                     style={[
-                      styles.chipText,
-                      active && styles.chipTextActive,
+                      styles.chip,
+                      active && styles.chipActive,
                     ]}
                   >
-                    {item || 'Todos'}
-                  </Text>
-                </Pressable>
-              );
-            }}
-            showsHorizontalScrollIndicator={false}
-          />
+                    <Text
+                      style={[
+                        styles.chipText,
+                        active && styles.chipTextActive,
+                      ]}
+                    >
+                      {item || 'Todos'}
+                    </Text>
+                  </Pressable>
+                );
+              }}
+              showsHorizontalScrollIndicator={false}
+            />
 
-          <View style={styles.resultsRow}>
-            <Text style={styles.resultsTitle}>
-              {selectedCategory || 'Catálogo completo'}
+            {/* Resumen de resultados */}
+            <View style={styles.resultsRow}>
+              <Text style={styles.resultsTitle}>
+                {filters.categoria || 'Catálogo completo'}
+              </Text>
+
+              <Text style={styles.resultsCount}>
+                {visibleProducts.length} productos
+              </Text>
+            </View>
+
+            {/* Indicador de filtros activos */}
+            {hasActiveFilters ? (
+              <Text style={styles.activeFiltersText}>
+                Filtros aplicados
+              </Text>
+            ) : null}
+
+            {error ? (
+              <Text style={styles.inlineError}>
+                {error}
+              </Text>
+            ) : null}
+          </View>
+        }
+
+        // Mensaje cuando no hay coincidencias
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Text style={styles.errorTitle}>
+              {searchQuery.trim()
+                ? 'No encontramos productos'
+                : 'No hay productos'}
             </Text>
-            <Text style={styles.resultsCount}>
-              {visibleProducts.length} productos
+
+            <Text style={styles.centerText}>
+              {searchQuery.trim() || hasActiveFilters
+                ? 'Prueba con otra búsqueda o cambia los filtros.'
+                : 'Prueba con otra categoría.'}
             </Text>
           </View>
+        }
 
-          {error ? (
-            <Text style={styles.inlineError}>
-              {error}
-            </Text>
-          ) : null}
-        </View>
-      }
+        // HU3: Lista paginada
+        data={pagedProducts}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        initialNumToRender={PAGE_SIZE}
+        columnWrapperStyle={styles.row}
+        contentContainerStyle={styles.list}
 
-      ListEmptyComponent={
-        <View style={styles.empty}>
-          <Text style={styles.errorTitle}>
-            No hay productos
-          </Text>
-          <Text style={styles.centerText}>
-            Prueba con otra categoría.
-          </Text>
-        </View>
-      }
+        // Mostrar indicador si hay más productos
+        ListFooterComponent={
+          canLoadMore ? (
+            <ActivityIndicator
+              color="#0B1F3A"
+              style={styles.footerLoader}
+            />
+          ) : null
+        }
 
-      columnWrapperStyle={styles.row}
-      contentContainerStyle={styles.list}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.4}
 
-      // HU3: Mostrar únicamente los productos paginados
-      data={pagedProducts}
-      keyExtractor={(item) => item.id}
-      numColumns={2}
-      initialNumToRender={PAGE_SIZE}
-
-      // Indicador mientras hay más productos por mostrar
-      ListFooterComponent={
-        canLoadMore ? (
-          <ActivityIndicator
-            color="#0B1F3A"
-            style={styles.footerLoader}
+        // Actualizar catálogo
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadCatalog({ refresh: true })}
+            tintColor="#0B1F3A"
           />
-        ) : null
-      }
+        }
 
-      // HU3: Cargar más productos al desplazarse
-      onEndReached={loadMore}
-      onEndReachedThreshold={0.4}
+        // Tarjetas de productos
+        renderItem={({ item }) => (
+          <ProductCard
+            product={item}
+            onPress={() =>
+              router.push({
+                pathname: '/producto/[id]',
+                params: { id: item.id },
+              })
+            }
+          />
+        )}
 
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => loadCatalog({ refresh: true })}
-          tintColor="#0B1F3A"
+        showsVerticalScrollIndicator={false}
+      />
+
+      {/* HU4 #11: Panel inferior de filtros */}
+      {filtersOpen ? (
+        <FilterBottomSheet
+          visible={true}
+          filters={filters}
+          categories={categories}
+          brands={brands}
+          sizes={sizes}
+          onClose={() => setFiltersOpen(false)}
+          onApply={applyFilters}
         />
-      }
-
-      renderItem={({ item }) => (
-        <ProductCard
-          product={item}
-          onPress={() =>
-            router.push({
-              pathname: '/producto/[id]',
-              params: { id: item.id },
-            })
-          }
-        />
-      )}
-
-      showsVerticalScrollIndicator={false}
-    />
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    backgroundColor: '#F5F7FA',
+    flex: 1,
+  },
+
   list: {
     backgroundColor: '#F5F7FA',
     flexGrow: 1,
     paddingBottom: 24,
   },
+
   hero: {
     backgroundColor: '#0B1F3A',
     paddingBottom: 28,
     paddingHorizontal: 18,
     paddingTop: 22,
   },
+
   eyebrow: {
     color: '#B7F02B',
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 2,
   },
+
   title: {
     color: '#FFFFFF',
     fontSize: 27,
@@ -278,17 +412,56 @@ const styles = StyleSheet.create({
     lineHeight: 32,
     marginTop: 8,
   },
+
   subtitle: {
     color: '#C7D2E1',
     fontSize: 13,
     lineHeight: 19,
     marginTop: 7,
   },
+
+  // Barra de búsqueda
+  searchContainer: {
+    backgroundColor: '#F5F7FA',
+    paddingHorizontal: 18,
+    paddingTop: 16,
+  },
+
+  searchInput: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#DCE3EC',
+    borderRadius: 12,
+    borderWidth: 1,
+    color: '#0B1F3A',
+    fontSize: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+
+  // Botón de filtros
+  filterButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#0B1F3A',
+    borderRadius: 12,
+    marginHorizontal: 18,
+    marginTop: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+
+  filterButtonText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+
+  // Categorías
   categories: {
     gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 14,
   },
+
   chip: {
     backgroundColor: '#FFFFFF',
     borderColor: '#DCE3EC',
@@ -297,18 +470,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 9,
   },
+
   chipActive: {
     backgroundColor: '#0B1F3A',
     borderColor: '#0B1F3A',
   },
+
   chipText: {
     color: '#405169',
     fontSize: 12,
     fontWeight: '700',
   },
+
   chipTextActive: {
     color: '#FFFFFF',
   },
+
+  // Resultados
   resultsRow: {
     alignItems: 'baseline',
     flexDirection: 'row',
@@ -316,18 +494,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 6,
   },
+
   resultsTitle: {
     color: '#0B1F3A',
     fontSize: 18,
     fontWeight: '900',
   },
+
   resultsCount: {
     color: '#718096',
     fontSize: 11,
   },
+
+  activeFiltersText: {
+    color: '#405169',
+    fontSize: 12,
+    fontWeight: '700',
+    marginHorizontal: 18,
+    marginBottom: 6,
+  },
+
   row: {
     paddingHorizontal: 6,
   },
+
+  // Carga y errores
   center: {
     alignItems: 'center',
     backgroundColor: '#F5F7FA',
@@ -335,23 +526,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 28,
   },
+
   centerText: {
     color: '#68788D',
     marginTop: 10,
     textAlign: 'center',
   },
+
   errorTitle: {
     color: '#0B1F3A',
     fontSize: 18,
     fontWeight: '900',
     textAlign: 'center',
   },
+
   inlineError: {
     color: '#B42318',
     fontSize: 12,
     marginHorizontal: 18,
     marginVertical: 6,
   },
+
   retryButton: {
     backgroundColor: '#0B1F3A',
     borderRadius: 10,
@@ -359,14 +554,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingVertical: 12,
   },
+
   retryText: {
     color: '#FFFFFF',
     fontWeight: '800',
   },
+
   empty: {
     alignItems: 'center',
     padding: 32,
   },
+
   footerLoader: {
     paddingVertical: 18,
   },
