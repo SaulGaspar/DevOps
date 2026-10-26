@@ -147,7 +147,7 @@ jobs:
         continue-on-error: true
         run: |
           mkdir -p qa-results
-          npm test -- --runTestsByPath __tests__/CartAcceptance.test.js __tests__/CatalogAcceptance.test.js --json --outputFile=qa-results/aceptacion.json
+          npm test -- --runTestsByPath __tests__/CartAcceptance.test.js __tests__/CatalogAcceptance.test.js --testTimeout=15000 --json --outputFile=qa-results/aceptacion.json
 
       - name: Generar resumen y validar resultados
         if: always() && steps.jest.outcome != 'skipped'
@@ -162,8 +162,40 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  security-functional:
+    name: 7. Seguridad funcional por HU
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+
+      - name: Ejecutar casos de seguridad con datos sintéticos
+        id: jest
+        continue-on-error: true
+        run: |
+          mkdir -p qa-results
+          npm run test:security -- --json --outputFile=qa-results/seguridad-funcional.json
+
+      - name: Generar veredicto de seguridad
+        if: always() && steps.jest.outcome != 'skipped'
+        run: node scripts/qa-summary.js qa-results/seguridad-funcional.json qa-results/seguridad-funcional.md
+
+      - name: Conservar evidencia aunque existan fallos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-seguridad-funcional-${{ github.run_number }}
+          path: qa-results/
+          if-no-files-found: warn
+          retention-days: 14
+
   regression:
-    name: 7. Regresión completa y cobertura
+    name: 8. Regresión completa y cobertura
     needs:
       - quality
       - unit-tests
@@ -171,6 +203,7 @@ jobs:
       - dependency-security
       - codeql
       - acceptance-tests
+      - security-functional
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -180,15 +213,18 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
+
       - name: Suite completa de regresión y cobertura
         id: jest
         continue-on-error: true
         run: |
           mkdir -p qa-results
           npm run test:coverage -- --json --outputFile=qa-results/regresion.json
+
       - name: Validar y resumir regresión
         if: always() && steps.jest.outcome != 'skipped'
         run: node scripts/qa-summary.js qa-results/regresion.json qa-results/regresion.md
+
       - name: Conservar reportes incluso en fallos
         if: always()
         uses: actions/upload-artifact@v4
@@ -201,7 +237,7 @@ jobs:
           retention-days: 14
 
   android-export:
-    name: 8. Exportación Expo (no APK)
+    name: 9. Exportación Expo (no APK)
     needs: [regression]
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -212,8 +248,10 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci
+
       - name: Exportar recursos Android
         run: npm run export:android
+
       - name: Publicar exportación aprobada
         uses: actions/upload-artifact@v4
         with:
@@ -223,7 +261,7 @@ jobs:
           retention-days: 14
 
   verdict:
-    name: 9. Veredicto final del pipeline
+    name: 10. Veredicto final del pipeline
     if: always()
     needs:
       - quality
@@ -232,6 +270,7 @@ jobs:
       - dependency-security
       - codeql
       - acceptance-tests
+      - security-functional
       - regression
       - android-export
     runs-on: ubuntu-latest
@@ -245,21 +284,24 @@ jobs:
           const jobs = JSON.parse(process.env.RESULTS);
           const rows = Object.entries(jobs).map(([name, obj]) => [name, obj.result]);
           const passed = rows.every(([, value]) => value === 'success');
+
           const report = [
             '# Veredicto CI/CD SportLike',
             '',
-            passed ? '## APROBADO: las etapas obligatorias terminaron correctamente.' :
-              '## RECHAZADO: una o más etapas fallaron, se cancelaron o se omitieron.',
+            passed
+              ? '## APROBADO: todas las etapas obligatorias terminaron correctamente.'
+              : '## RECHAZADO: una o más etapas fallaron, se cancelaron o se omitieron.',
             '',
             '| Etapa | Resultado |',
             '|---|---|',
             ...rows.map(([name, status]) => '| ' + name + ' | ' + status + ' |'),
             '',
-            'La exportación posterior solo se habilita si las pruebas previas aprueban.',
-            'Los resultados detallados y casos están en los artefactos de cada job.'
+            'La exportación solo se habilita cuando aprueban las verificaciones previas.',
+            'Los resultados detallados se conservan en los artefactos de cada job.'
           ].join('\n');
 
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, report + '\n');
           console.log(report);
+
           if (!passed) process.exitCode = 1;
           NODE
