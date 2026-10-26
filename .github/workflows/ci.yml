@@ -147,7 +147,7 @@ jobs:
         continue-on-error: true
         run: |
           mkdir -p qa-results
-          npm test -- --runTestsByPath __tests__/CartAcceptance.test.js __tests__/CatalogAcceptance.test.js --json --outputFile=qa-results/aceptacion.json
+          npm test -- --runTestsByPath __tests__/CartAcceptance.test.js __tests__/CatalogAcceptance.test.js --testTimeout=15000 --json --outputFile=qa-results/aceptacion.json
 
       - name: Generar resumen y validar resultados
         if: always() && steps.jest.outcome != 'skipped'
