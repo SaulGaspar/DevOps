@@ -11,9 +11,12 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '../context/AuthContext';
-import { authApi } from '../services/api';
+import { authApi, resolveApiUrl } from '../services/api';
 import { hasErrors, normalizeEmail, validateLogin } from '../utils/authValidation';
+import { parseGoogleAuthCallback } from '../utils/googleAuth';
 
 export default function LoginScreen() {
   const { iniciarSesion } = useAuth();
@@ -23,6 +26,7 @@ export default function LoginScreen() {
   const [errors, setErrors] = useState({});
   const [errorGeneral, setErrorGeneral] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
 
   async function submit() {
     const validationErrors = validateLogin({ correo, password });
@@ -42,6 +46,35 @@ export default function LoginScreen() {
       setErrorGeneral(error.message);
     } finally {
       setEnviando(false);
+    }
+  }
+
+  async function loginWithGoogle() {
+    setErrorGeneral('');
+    setGoogleBusy(true);
+    try {
+      const redirectUrl = Linking.createURL('login');
+      const googlePath = process.env.EXPO_PUBLIC_GOOGLE_PATH || '/auth/google';
+      const authUrl = `${resolveApiUrl(googlePath)}?return_to=${encodeURIComponent(redirectUrl)}`;
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
+
+      if (result.type === 'cancel' || result.type === 'dismiss') return;
+      if (result.type !== 'success' || !result.url) {
+        throw new Error('No se pudo completar el acceso con Google.');
+      }
+
+      const outcome = parseGoogleAuthCallback(result.url);
+      if (outcome.type === 'registration') {
+        router.push({ pathname: '/registro-google', params: { token: outcome.registrationToken } });
+        return;
+      }
+
+      await iniciarSesion({ token: outcome.token, usuario: {} });
+      router.replace('/perfil');
+    } catch (error) {
+      setErrorGeneral(error.message);
+    } finally {
+      setGoogleBusy(false);
     }
   }
 
@@ -123,7 +156,7 @@ export default function LoginScreen() {
 
           <TouchableOpacity
             accessibilityRole="button"
-            disabled={enviando}
+            disabled={enviando || googleBusy}
             onPress={submit}
             style={[styles.button, enviando && styles.buttonDisabled]}
             testID="login-submit"
@@ -132,6 +165,29 @@ export default function LoginScreen() {
               <ActivityIndicator color={COLORS.white} />
             ) : (
               <Text style={styles.buttonText}>Iniciar sesión</Text>
+            )}
+          </TouchableOpacity>
+
+          <View style={styles.dividerRow}>
+            <View style={styles.divider} />
+            <Text style={styles.dividerText}>o continúa con</Text>
+            <View style={styles.divider} />
+          </View>
+
+          <TouchableOpacity
+            accessibilityRole="button"
+            disabled={enviando || googleBusy}
+            onPress={loginWithGoogle}
+            style={[styles.googleButton, googleBusy && styles.buttonDisabled]}
+            testID="google-login"
+          >
+            {googleBusy ? (
+              <ActivityIndicator color={COLORS.text} />
+            ) : (
+              <>
+                <Text style={styles.googleIcon}>G</Text>
+                <Text style={styles.googleButtonText}>Iniciar sesión con Google</Text>
+              </>
             )}
           </TouchableOpacity>
 
@@ -236,6 +292,20 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.65 },
   buttonText: { color: COLORS.white, fontSize: 15, fontWeight: '800' },
+  dividerRow: { alignItems: 'center', flexDirection: 'row', gap: 10, marginVertical: 18 },
+  divider: { backgroundColor: COLORS.border, flex: 1, height: 1 },
+  dividerText: { color: COLORS.muted, fontSize: 12 },
+  googleButton: {
+    alignItems: 'center',
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    height: 48,
+    justifyContent: 'center',
+  },
+  googleIcon: { color: '#4285F4', fontSize: 18, fontWeight: '900', marginRight: 12 },
+  googleButtonText: { color: COLORS.text, fontSize: 14, fontWeight: '700' },
   footerRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 18 },
   footerText: { color: COLORS.muted, fontSize: 12 },
 });

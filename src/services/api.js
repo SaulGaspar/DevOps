@@ -1,89 +1,20 @@
-const DEFAULT_TIMEOUT_MS = 15000;
+import { apiClient, ApiError } from './ApiClient';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL?.replace(/\/+$/, '');
 const LOGIN_PATH = process.env.EXPO_PUBLIC_LOGIN_PATH || '/auth/login';
 const REGISTER_PATH = process.env.EXPO_PUBLIC_REGISTER_PATH || '/auth/register';
 const FORGOT_PASSWORD_PATH =
-  process.env.EXPO_PUBLIC_FORGOT_PASSWORD_PATH || '/auth/forgot-password';
+  process.env.EXPO_PUBLIC_FORGOT_PASSWORD_PATH || '/api/forgot-password';
 
-export class ApiError extends Error {
-  constructor(message, status = 0, details = null) {
-    super(message);
-    this.name = 'ApiError';
-    this.status = status;
-    this.details = details;
-  }
-}
+export { ApiError };
 
-function requireApiUrl() {
-  let parsedUrl;
-
-  try {
-    parsedUrl = new URL(API_URL);
-  } catch {
-    throw new ApiError(
-      'La API todavía no está configurada. Define una URL válida en EXPO_PUBLIC_API_URL.',
-    );
-  }
-
-  if (
-    !['http:', 'https:'].includes(parsedUrl.protocol) ||
-    parsedUrl.hostname === 'api.ejemplo.com'
-  ) {
-    throw new ApiError(
-      'La API todavía no está configurada. Define EXPO_PUBLIC_API_URL en tu archivo .env.',
-    );
-  }
-  return API_URL;
-}
-
-async function request(path, { method = 'GET', body, token } = {}) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
-
-  try {
-    const response = await fetch(`${requireApiUrl()}${path}`, {
-      method,
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: body ? JSON.stringify(body) : undefined,
-      signal: controller.signal,
-    });
-
-    const contentType = response.headers.get('content-type') || '';
-    const payload = contentType.includes('application/json')
-      ? await response.json()
-      : null;
-
-    if (!response.ok) {
-      throw new ApiError(
-        payload?.message || payload?.error || 'No se pudo completar la solicitud.',
-        response.status,
-        payload,
-      );
-    }
-
-    return payload || {};
-  } catch (error) {
-    if (error?.name === 'AbortError') {
-      throw new ApiError('La solicitud tardó demasiado. Intenta nuevamente.');
-    }
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new ApiError('No fue posible conectarse con el servidor.');
-  } finally {
-    clearTimeout(timeout);
-  }
-}
+const request = (...args) => apiClient.request(...args);
 
 export function resolveApiAssetUrl(value) {
-  if (!value) return '';
-  if (/^https?:\/\//i.test(value)) return value;
-  return `${requireApiUrl()}${value.startsWith('/') ? value : `/${value}`}`;
+  return apiClient.resolveAssetUrl(value);
+}
+
+export function resolveApiUrl(path = '') {
+  return `${apiClient.getBaseUrl()}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
 function normalizeSession(payload) {
@@ -130,6 +61,19 @@ export const authApi = {
       body: { correo },
     });
   },
+
+  googleRegistration(registrationToken) {
+    return request('/api/google/registration', { token: registrationToken });
+  },
+
+  async completeGoogle({ usuario, registrationToken }) {
+    const payload = await request('/api/google/complete', {
+      method: 'POST',
+      body: { usuario },
+      token: registrationToken,
+    });
+    return normalizeSession(payload);
+  },
 };
 
 export const productApi = {
@@ -155,4 +99,65 @@ export const productApi = {
       `/api/products/${encodeURIComponent(id)}/recommendations?limit=${encodeURIComponent(limit)}`,
     );
   },
+};
+export const profileApi = {
+  me: (token) => request('/api/me', { token }),
+  update: (body, token) => request('/api/update-profile', { method: 'POST', body, token }),
+  password: (actual, nueva, token) => request('/api/update-password', { method: 'POST', body: { actual, nueva }, token }),
+};
+
+export const promotionApi = {
+  active: () => request('/api/promotions/active'),
+};
+
+export const addressApi = {
+  list: (token) => request('/api/user/addresses', { token }),
+  create: (body, token) => request('/api/user/addresses', { method: 'POST', body, token }),
+  update: (id, body, token) => request(`/api/user/addresses/${encodeURIComponent(id)}`, { method: 'PUT', body, token }),
+  remove: (id, token) => request(`/api/user/addresses/${encodeURIComponent(id)}`, { method: 'DELETE', token }),
+  makeDefault: (id, token) => request(`/api/user/addresses/${encodeURIComponent(id)}/default`, { method: 'PATCH', token }),
+};
+
+export const orderApi = {
+  mine: (token) => request('/api/orders/mis-pedidos', { token }),
+  notifications: (token) => request('/api/orders/notificaciones', { token }),
+};
+
+export const paymentApi = {
+  preference: (body, token) => request('/api/payments/preference', {
+    method: 'POST',
+    body: { ...body, platform: 'mobile' },
+    token,
+  }),
+  complete: (body, token) => request('/api/payments/complete', { method: 'POST', body, token }),
+  status: (paymentId, token) => request(`/api/payments/payment/${encodeURIComponent(paymentId)}`, { token }),
+};
+
+export const notificationApi = {
+  register: (pushToken, token) => request('/api/notifications/token', {
+    method: 'POST',
+    body: { token: pushToken, platform: 'expo' },
+    token,
+  }),
+  remove: (pushToken, token) => request('/api/notifications/token', {
+    method: 'DELETE',
+    body: { token: pushToken },
+    token,
+  }),
+};
+
+export const returnApi = {
+  list: (token) => request('/api/returns', { token }),
+  eligibleOrders: (token) => request('/api/returns/eligible-orders', { token }),
+  create: (body, token) => request('/api/returns', { method: 'POST', body, token }),
+};
+
+export const reviewApi = {
+  list: (productId) => request(`/api/reviews/product/${encodeURIComponent(productId)}`),
+  mine: (productId, token) => request(`/api/reviews/product/${encodeURIComponent(productId)}/mine`, { token }),
+  create: (productId, body, token) => request(`/api/reviews/product/${encodeURIComponent(productId)}`, { method: 'POST', body, token }),
+};
+
+export const contactApi = {
+  send: (body) => request('/api/contact', { method: 'POST', body }),
 };
