@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -12,9 +12,16 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../context/AuthContext';
 import { authApi } from '../services/api';
-import { hasErrors, normalizeEmail, validateRegister } from '../utils/authValidation';
+import {
+  buildRegistrationPayload,
+  friendlyRegistrationError,
+  hasErrors,
+  summarizeRegisterErrors,
+  validateRegister,
+} from '../utils/authValidation';
 
 const INITIAL_VALUES = {
   nombre: '',
@@ -46,8 +53,77 @@ function Campo({ error, etiqueta, name, onChange, value, ...props }) {
   );
 }
 
+function parseBirthDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || '');
+  if (!match) return null;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatBirthDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function defaultBirthDate() {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() - 18);
+  return date;
+}
+
+function FechaNacimiento({ error, onChange, value }) {
+  const [mostrarCalendario, setMostrarCalendario] = useState(false);
+  const selectedDate = parseBirthDate(value) || defaultBirthDate();
+
+  function changeDate(event, date) {
+    if (Platform.OS === 'android') setMostrarCalendario(false);
+    if (event.type === 'dismissed' || !date) return;
+    onChange('fechaNacimiento', formatBirthDate(date));
+  }
+
+  return (
+    <View style={styles.campo}>
+      <Text style={styles.etiqueta}>Fecha de nacimiento</Text>
+      <Pressable
+        accessibilityLabel="Seleccionar fecha de nacimiento"
+        accessibilityRole="button"
+        onPress={() => setMostrarCalendario(true)}
+        style={[styles.input, styles.fechaInput, error && styles.inputError]}
+      >
+        <Text style={value ? styles.fechaTexto : styles.fechaPlaceholder}>
+          {value
+            ? selectedDate.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
+            : 'Selecciona una fecha'}
+        </Text>
+        <Text style={styles.calendarioIcono}>▦</Text>
+      </Pressable>
+      {mostrarCalendario ? (
+        <View style={styles.selectorFecha}>
+          <DateTimePicker
+            display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
+            maximumDate={new Date()}
+            minimumDate={new Date(1900, 0, 1)}
+            mode="date"
+            onChange={changeDate}
+            value={selectedDate}
+          />
+          {Platform.OS === 'ios' ? (
+            <Pressable onPress={() => setMostrarCalendario(false)} style={styles.fechaListo}>
+              <Text style={styles.fechaListoTexto}>Listo</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+    </View>
+  );
+}
+
 export default function RegisterScreen() {
   const { iniciarSesion } = useAuth();
+  const scrollRef = useRef(null);
   const [values, setValues] = useState(INITIAL_VALUES);
   const [errors, setErrors] = useState({});
   const [errorGeneral, setErrorGeneral] = useState('');
@@ -62,20 +138,15 @@ export default function RegisterScreen() {
     const validationErrors = validateRegister(values);
     setErrors(validationErrors);
     setErrorGeneral('');
-    if (hasErrors(validationErrors)) return;
+    if (hasErrors(validationErrors)) {
+      setErrorGeneral(summarizeRegisterErrors(validationErrors));
+      scrollRef.current?.scrollTo({ animated: true, y: 180 });
+      return;
+    }
 
     setEnviando(true);
     try {
-      const result = await authApi.register({
-        nombre: values.nombre.trim(),
-        apellidoPaterno: values.apellidoPaterno.trim(),
-        apellidoMaterno: values.apellidoMaterno.trim(),
-        fechaNacimiento: values.fechaNacimiento,
-        correo: normalizeEmail(values.correo),
-        telefono: values.telefono.replace(/\D/g, ''),
-        usuario: values.usuario.trim(),
-        password: values.password,
-      });
+      const result = await authApi.register(buildRegistrationPayload(values));
 
       if (result.token) {
         await iniciarSesion(result);
@@ -84,7 +155,8 @@ export default function RegisterScreen() {
         router.replace({ pathname: '/login', params: { registro: 'exitoso' } });
       }
     } catch (error) {
-      setErrorGeneral(error.message);
+      setErrorGeneral(friendlyRegistrationError(error));
+      scrollRef.current?.scrollTo({ animated: true, y: 180 });
     } finally {
       setEnviando(false);
     }
@@ -98,6 +170,7 @@ export default function RegisterScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        ref={scrollRef}
         style={styles.pantalla}
       >
         <View style={styles.encabezado}>
@@ -112,6 +185,12 @@ export default function RegisterScreen() {
         <View style={styles.tarjeta}>
           <Text style={styles.titulo}>Crear cuenta</Text>
           <Text style={styles.subtitulo}>Completa tus datos para comenzar.</Text>
+
+          {errorGeneral ? (
+            <Text accessibilityLiveRegion="polite" style={styles.generalError}>
+              {errorGeneral}
+            </Text>
+          ) : null}
 
           <Campo
             etiqueta="Nombre"
@@ -136,12 +215,9 @@ export default function RegisterScreen() {
             placeholder="Apellido materno"
             value={values.apellidoMaterno}
           />
-          <Campo
-            etiqueta="Fecha de nacimiento"
+          <FechaNacimiento
             error={errors.fechaNacimiento}
-            name="fechaNacimiento"
             onChange={update}
-            placeholder="AAAA-MM-DD"
             value={values.fechaNacimiento}
           />
           <Campo
@@ -216,12 +292,6 @@ export default function RegisterScreen() {
             <Text style={styles.errorText}>{errors.aceptaTerminos}</Text>
           ) : null}
 
-          {errorGeneral ? (
-            <Text accessibilityLiveRegion="polite" style={styles.generalError}>
-              {errorGeneral}
-            </Text>
-          ) : null}
-
           <Pressable
             accessibilityRole="button"
             disabled={enviando}
@@ -273,8 +343,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   inputError: { borderColor: ERROR },
+  fechaInput: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  fechaTexto: { color: NAVY, fontSize: 15 },
+  fechaPlaceholder: { color: '#738196', fontSize: 15 },
+  calendarioIcono: { color: '#0A4DA2', fontSize: 22, fontWeight: '800' },
+  selectorFecha: { backgroundColor: '#F7F9FC', borderRadius: 10, marginTop: 6, padding: 6 },
+  fechaListo: { alignSelf: 'flex-end', paddingHorizontal: 14, paddingVertical: 8 },
+  fechaListoTexto: { color: '#0A4DA2', fontWeight: '800' },
   errorText: { color: ERROR, fontSize: 12, marginTop: 5 },
-  generalError: { color: ERROR, fontSize: 13, marginTop: 14, textAlign: 'center' },
+  generalError: { backgroundColor: '#FEF3F2', borderRadius: 8, color: ERROR, fontSize: 13, marginBottom: 14, padding: 10 },
   terminos: { alignItems: 'center', flexDirection: 'row', gap: 10, marginTop: 4 },
   terminosTexto: { color: '#53657a', flex: 1, fontSize: 13 },
   boton: { alignItems: 'center', backgroundColor: NAVY, borderRadius: 10, marginTop: 20, padding: 14 },

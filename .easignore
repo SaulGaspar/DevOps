@@ -1,0 +1,36 @@
+# Dependencias y archivos generados
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+output/
+tmp/
+coverage/
+
+# Carpetas nativas regeneradas por EAS
+/ios
+/android
+.kotlin/
+
+# Credenciales y configuración local
+.env
+.env.*
+!.env.example
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# Archivos locales que no forman parte de la aplicación
+.git/
+.DS_Store
+.metro-health-check*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.tsbuildinfo
+.claude/
+docs/
