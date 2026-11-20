@@ -1,0 +1,46 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://sl-back.vercel.app",
+        "EXPO_PUBLIC_LOGIN_PATH": "/auth/login",
+        "EXPO_PUBLIC_REGISTER_PATH": "/auth/register",
+        "EXPO_PUBLIC_FORGOT_PASSWORD_PATH": "/api/forgot-password",
+        "EXPO_PUBLIC_APP_ENV": "preview"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://sl-back.vercel.app",
+        "EXPO_PUBLIC_LOGIN_PATH": "/auth/login",
+        "EXPO_PUBLIC_REGISTER_PATH": "/auth/register",
+        "EXPO_PUBLIC_FORGOT_PASSWORD_PATH": "/api/forgot-password",
+        "EXPO_PUBLIC_APP_ENV": "production"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "track": "internal"
+      }
+    }
+  }
+}

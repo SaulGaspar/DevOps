@@ -30,9 +30,27 @@ export function validateLogin({ correo = '', password = '' } = {}) {
 
 function isValidBirthDate(value) {
   if (!DATE_PATTERN.test(value)) return false;
-  const date = new Date(`${value}T00:00:00`);
-  return !Number.isNaN(date.getTime()) && date < new Date();
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return (
+    date.getFullYear() === year
+    && date.getMonth() === month - 1
+    && date.getDate() === day
+    && date < new Date()
+  );
 }
+
+const REGISTER_FIELD_LABELS = {
+  nombre: 'nombre',
+  apellidoPaterno: 'apellido paterno',
+  fechaNacimiento: 'fecha de nacimiento',
+  correo: 'correo electrónico',
+  telefono: 'teléfono',
+  usuario: 'usuario',
+  password: 'contraseña',
+  confirmarPassword: 'confirmación de contraseña',
+  aceptaTerminos: 'aceptación de términos',
+};
 
 export function validateRegister(values = {}) {
   const errors = {};
@@ -49,8 +67,10 @@ export function validateRegister(values = {}) {
   if (!apellidoPaterno.trim() || apellidoPaterno.length > 80) {
     errors.apellidoPaterno = 'Ingresa tu apellido paterno.';
   }
-  if (!isValidBirthDate(text(values.fechaNacimiento))) {
-    errors.fechaNacimiento = 'Usa una fecha válida con formato AAAA-MM-DD.';
+  if (!text(values.fechaNacimiento)) {
+    errors.fechaNacimiento = 'Selecciona tu fecha de nacimiento.';
+  } else if (!isValidBirthDate(text(values.fechaNacimiento))) {
+    errors.fechaNacimiento = 'Selecciona una fecha de nacimiento válida.';
   }
   if (!EMAIL_PATTERN.test(correo)) {
     errors.correo = 'Ingresa un correo electrónico válido.';
@@ -58,13 +78,11 @@ export function validateRegister(values = {}) {
   if (telefono.length !== 10) {
     errors.telefono = 'El teléfono debe contener 10 dígitos.';
   }
-  if (usuario.trim().length < 3 || usuario.length > 50) {
-    errors.usuario = 'El usuario debe contener al menos 3 caracteres.';
+  if (!/^[a-zA-Z0-9_-]{4,20}$/.test(usuario.trim())) {
+    errors.usuario = 'Usa de 4 a 20 caracteres: letras, números, guion o guion bajo.';
   }
-  if (password.length < 8 || password.length > 128) {
-    errors.password = 'La contraseña debe contener al menos 8 caracteres.';
-  } else if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) {
-    errors.password = 'La contraseña debe incluir letras y números.';
+  if (password.length > 128 || !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(password)) {
+    errors.password = 'Usa mínimo 8 caracteres con mayúscula, minúscula, número y símbolo (@$!%*?&).';
   }
   if (confirmarPassword !== password) {
     errors.confirmarPassword = 'Las contraseñas no coinciden.';
@@ -78,4 +96,37 @@ export function validateRegister(values = {}) {
 
 export function hasErrors(errors) {
   return Object.keys(errors).length > 0;
+}
+
+export function summarizeRegisterErrors(errors = {}) {
+  const fields = Object.keys(errors).map((key) => REGISTER_FIELD_LABELS[key] || key);
+  if (!fields.length) return '';
+  return `Revisa ${fields.length === 1 ? 'el campo' : 'los campos'}: ${fields.join(', ')}.`;
+}
+
+export function buildRegistrationPayload(values = {}) {
+  return {
+    nombre: String(values.nombre || '').trim(),
+    apellidoP: String(values.apellidoPaterno || '').trim(),
+    apellidoM: String(values.apellidoMaterno || '').trim(),
+    fechaNac: String(values.fechaNacimiento || ''),
+    correo: normalizeEmail(values.correo),
+    telefono: String(values.telefono || '').replace(/\D/g, ''),
+    usuario: String(values.usuario || '').trim(),
+    password: String(values.password || ''),
+  };
+}
+
+export function friendlyRegistrationError(error) {
+  const message = String(error?.message || 'No pudimos crear tu cuenta. Intenta nuevamente.');
+  if (/faltan campos requeridos/i.test(message)) {
+    return 'El servidor no recibió todos los datos. Revisa los campos marcados e intenta nuevamente.';
+  }
+  if (/usuario, correo o teléfono ya registrado/i.test(message)) {
+    return 'El usuario, correo o teléfono ya pertenece a una cuenta. Intenta iniciar sesión o usa datos diferentes.';
+  }
+  if (/error registrando usuario/i.test(message)) {
+    return 'No pudimos crear tu cuenta en este momento. Intenta nuevamente en unos minutos.';
+  }
+  return message;
 }

@@ -3,7 +3,7 @@
     "name": "SportLike",
     "slug": "sportlike-mobile",
     "scheme": "sportlike",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -12,7 +12,6 @@
     },
     "android": {
       "package": "com.saulgaspar.sportlike",
-      "versionCode": 1,
       "permissions": [
         "POST_NOTIFICATIONS"
       ],
@@ -49,7 +48,8 @@
         }
       ],
       "expo-web-browser",
-      "expo-status-bar"
+      "expo-status-bar",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

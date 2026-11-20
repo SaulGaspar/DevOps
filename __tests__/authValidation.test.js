@@ -1,6 +1,9 @@
 import {
+  buildRegistrationPayload,
+  friendlyRegistrationError,
   hasErrors,
   normalizeEmail,
+  summarizeRegisterErrors,
   validateEmail,
   validateLogin,
   validateRegister,
@@ -32,8 +35,8 @@ describe('validaciones de autenticación', () => {
       correo: 'saul@example.com',
       telefono: '7711234567',
       usuario: 'saul',
-      password: 'Segura123',
-      confirmarPassword: 'Segura123',
+      password: 'Segura123!',
+      confirmarPassword: 'Segura123!',
       aceptaTerminos: true,
     });
 
@@ -57,5 +60,54 @@ describe('validaciones de autenticación', () => {
     expect(errors.password).toBeDefined();
     expect(errors.confirmarPassword).toBeDefined();
     expect(errors.aceptaTerminos).toBeDefined();
+  });
+
+  test('transforma los nombres del formulario al contrato real del backend', () => {
+    expect(buildRegistrationPayload({
+      nombre: ' Saúl ',
+      apellidoPaterno: ' Gaspar ',
+      apellidoMaterno: ' Pérez ',
+      fechaNacimiento: '2000-10-10',
+      correo: ' SAUL@EXAMPLE.COM ',
+      telefono: '771 123 4567',
+      usuario: ' saul_g ',
+      password: 'Segura123!',
+    })).toEqual({
+      nombre: 'Saúl',
+      apellidoP: 'Gaspar',
+      apellidoM: 'Pérez',
+      fechaNac: '2000-10-10',
+      correo: 'saul@example.com',
+      telefono: '7711234567',
+      usuario: 'saul_g',
+      password: 'Segura123!',
+    });
+  });
+
+  test('explica qué campos deben corregirse', () => {
+    expect(summarizeRegisterErrors({ correo: 'inválido', telefono: 'inválido' }))
+      .toBe('Revisa los campos: correo electrónico, teléfono.');
+    expect(friendlyRegistrationError(new Error('Faltan campos requeridos')))
+      .toContain('no recibió todos los datos');
+  });
+
+  test('rechaza fechas inexistentes y reglas que el backend no acepta', () => {
+    const base = {
+      nombre: 'Saúl',
+      apellidoPaterno: 'Gaspar',
+      fechaNacimiento: '2000-02-31',
+      correo: 'saul@example.com',
+      telefono: '7711234567',
+      usuario: 'abc',
+      password: 'Segura123',
+      confirmarPassword: 'Segura123',
+      aceptaTerminos: true,
+    };
+
+    expect(validateRegister(base)).toEqual(expect.objectContaining({
+      fechaNacimiento: expect.any(String),
+      usuario: expect.any(String),
+      password: expect.any(String),
+    }));
   });
 });
